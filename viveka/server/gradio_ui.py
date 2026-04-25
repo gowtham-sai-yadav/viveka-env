@@ -216,6 +216,76 @@ def _empty_outputs() -> tuple[str, str, dict, dict, str, str]:
     return "", "", {}, {}, "", ""
 
 
+def _run_episode_silent(
+    scenario: dict[str, Any], tier_id: int, scenario_idx: int, policy_name: str
+) -> tuple[VivekaObservation, list[dict[str, Any]]]:
+    env = VivekaEnvironment()
+    obs = env.reset(tier_id=tier_id, scenario_idx=scenario_idx)
+    history: list[dict[str, Any]] = []
+    max_steps = scenario.get("expected", {}).get("max_steps", 30)
+    step_count = 0
+    while not obs.done and step_count < max_steps:
+        try:
+            if policy_name == "naive":
+                action = _naive_policy(scenario, obs)
+            else:
+                action = _heuristic_policy(scenario, obs, history)
+            obs = env.step(action)
+        except Exception:
+            break
+        step_count += 1
+        record = (env._actions_taken or [{}])[-1]
+        history.append(record)
+    return obs, history
+
+
+def _compare_policies(scenario_choice: str) -> str:
+    if not scenario_choice:
+        return "_Pick a scenario first._"
+    try:
+        tier_id, idx = _parse_scenario_choice(scenario_choice)
+        scenario = load_scenario_by_tier(tier_id, idx)
+    except Exception as e:
+        return f"**Error:** {e}"
+
+    naive_obs, naive_hist = _run_episode_silent(scenario, tier_id, idx, "naive")
+    heur_obs, heur_hist = _run_episode_silent(scenario, tier_id, idx, "heuristic")
+
+    naive_signals = (naive_obs.metadata or {}).get("reward_signals", {}) or {}
+    heur_signals = (heur_obs.metadata or {}).get("reward_signals", {}) or {}
+    naive_reward = naive_obs.reward if naive_obs.reward is not None else 0.0
+    heur_reward = heur_obs.reward if heur_obs.reward is not None else 0.0
+    delta = heur_reward - naive_reward
+
+    if delta > 0:
+        verdict = f"heuristic wins by **{abs(delta):.3f}**"
+    elif delta < 0:
+        verdict = f"naive wins by **{abs(delta):.3f}**"
+    else:
+        verdict = "tie"
+
+    rows = [
+        f"## 🆚 Policy comparison · `{scenario_choice}`",
+        "",
+        f"- **Naive baseline:** reward `{naive_reward:.3f}` · {len(naive_hist)} steps",
+        f"- **Heuristic policy:** reward `{heur_reward:.3f}` · {len(heur_hist)} steps",
+        "",
+        f"### Δ reward: `{'+' if delta >= 0 else ''}{delta:.3f}` — {verdict}",
+        "",
+        "| Reward signal | Naive | Heuristic | Δ |",
+        "|---|---|---|---|",
+    ]
+    keys = sorted(set(naive_signals) | set(heur_signals))
+    for k in keys:
+        n = float(naive_signals.get(k, 0.0) or 0.0)
+        h = float(heur_signals.get(k, 0.0) or 0.0)
+        d = h - n
+        sign = "+" if d > 0 else ""
+        rows.append(f"| `{k}` | {n:.3f} | {h:.3f} | {sign}{d:.3f} |")
+
+    return "\n".join(rows)
+
+
 def _run_full(scenario_choice: str, policy: str) -> tuple[str, str, dict, dict, str, str]:
     if not scenario_choice:
         return _empty_outputs()
@@ -357,6 +427,7 @@ def create_gradio_app() -> gr.Blocks:
                     info=_POLICY_HELP,
                 )
                 run_btn = gr.Button("▶ Run scenario", variant="primary")
+                compare_btn = gr.Button("🆚 Compare both policies", variant="secondary")
                 reset_btn = gr.Button("↻ Reset")
                 manual_action_in = gr.JSON(
                     label="Manual action (only used when policy=manual)",
@@ -371,11 +442,17 @@ def create_gradio_app() -> gr.Blocks:
                 state_json = gr.JSON(label="Service state", value={})
                 signals_json = gr.JSON(label="Reward signals", value={})
                 final_md = gr.Markdown("")
+                comparison_md = gr.Markdown("")
 
         run_btn.click(
             fn=_run_full,
             inputs=[scenario_dd, policy_radio],
             outputs=[user_msg_md, trace_md, state_json, signals_json, final_md, error_md],
+        )
+        compare_btn.click(
+            fn=_compare_policies,
+            inputs=[scenario_dd],
+            outputs=[comparison_md],
         )
         reset_btn.click(
             fn=_reset_scenario,

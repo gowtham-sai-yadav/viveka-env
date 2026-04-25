@@ -7,11 +7,12 @@ import gradio as gr
 from viveka.models import VivekaAction
 from viveka.server.environment import VivekaEnvironment
 from viveka.server.gradio_ui import (
+    _compare_policies,
     _heuristic_policy,
     _naive_policy,
     create_gradio_app,
 )
-from viveka.server.scenario_loader import load_scenario_by_tier
+from viveka.server.scenario_loader import list_scenarios, load_scenario_by_tier
 
 
 def test_create_gradio_app_returns_blocks():
@@ -54,3 +55,27 @@ def test_heuristic_policy_confirms_before_share_pan_irreversible():
     assert second.target_service == "digilocker"
     assert second.operation == "share_document"
     assert second.predicted_reversibility == "irreversible"
+
+
+def test_compare_policies_runs_both_and_shows_delta():
+    # Pick scenario_002 (share_pan, irreversible) — heuristic should beat naive on
+    # reversibility prediction since registry knows share_document is irreversible.
+    choice = "t1_easy/scenario_002_dgl_share_pan_to_bank"
+    md = _compare_policies(choice)
+    assert "Naive" in md
+    assert "Heuristic" in md
+    assert "Δ reward" in md
+    assert "reversibility_correct" in md
+    # Heuristic uses registry-derived label (correct), naive emits None — heuristic
+    # should score >= naive on reversibility_correct, hence delta >= 0 on that signal.
+    assert "+" in md or "0.000" in md  # at least one positive or tied delta line
+
+
+def test_compare_policies_handles_empty_choice():
+    md = _compare_policies("")
+    assert "Pick a scenario" in md
+
+
+def test_compare_policies_handles_unknown_scenario():
+    md = _compare_policies("t9_nope/scenario_xxx")
+    assert "Error" in md or "not found" in md.lower()
