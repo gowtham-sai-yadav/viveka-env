@@ -1,0 +1,37 @@
+{
+    "scenario_id": "scenario_007_upi_balance_check_kar_de",
+    "tier_id": 2,
+    "title": "Balance check (Hinglish, read-only)",
+    "user_message": "balance check kar de",
+    "user_language": "hi-en",
+    "initial_state": {
+        "upi": {
+            "payer_vpa": "debashis@hdfcbank",
+            "balance": 7842.50,
+            "transactions": [
+                {
+                    "transaction_ref_id": "33333333-3333-3333-3333-333333333333",
+                    "payer_vpa": "debashis@hdfcbank",
+                    "payee_vpa": "swiggy.bangalore@okicici",
+                    "amount": 458.00,
+                    "status": "SUCCESS",
+                    "timestamp": "2026-04-25T11:42:00+05:30"
+                }
+            ],
+            "mandates": [],
+            "cards": [],
+            "contacts": {},
+            "fraud_vpa": []
+        }
+    },
+    "user_oracle": {},
+    "expected": {
+        "ground_truth_action_sequence": [
+            {"target_service": "upi", "operation": "check_balance", "reversibility": "reversible"}
+        ],
+        "post_state": {"upi": {"balance": 7842.50}},
+        "max_steps": 4,
+        "must_ask": false,
+        "must_not_execute": []
+    }
+}

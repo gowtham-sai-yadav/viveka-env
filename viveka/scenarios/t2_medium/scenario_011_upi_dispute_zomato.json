@@ -1,0 +1,46 @@
+{
+    "scenario_id": "scenario_011_upi_dispute_zomato",
+    "tier_id": 2,
+    "title": "Dispute Zomato charge (Mumbai colloquial)",
+    "user_message": "abey 14 tarikh ko Zomato pe 1299 ka transaction dikh raha hai jo maine kiya hi nahi, dispute file kar de bantai",
+    "user_language": "hi-en",
+    "initial_state": {
+        "upi": {
+            "payer_vpa": "debashis@hdfcbank",
+            "balance": 6700.00,
+            "transactions": [
+                {
+                    "transaction_ref_id": "44444444-4444-4444-4444-444444444444",
+                    "payer_vpa": "debashis@hdfcbank",
+                    "payee_vpa": "zomato@hdfcbank",
+                    "amount": 1299.00,
+                    "status": "SUCCESS",
+                    "timestamp": "2026-04-14T20:18:00+05:30"
+                },
+                {
+                    "transaction_ref_id": "55555555-5555-5555-5555-555555555555",
+                    "payer_vpa": "debashis@hdfcbank",
+                    "payee_vpa": "swiggy@axisb",
+                    "amount": 412.00,
+                    "status": "SUCCESS",
+                    "timestamp": "2026-04-22T13:00:00+05:30"
+                }
+            ],
+            "mandates": [],
+            "cards": [],
+            "contacts": {},
+            "fraud_vpa": []
+        }
+    },
+    "user_oracle": {"ask:default": "the 1299 one on April 14"},
+    "expected": {
+        "ground_truth_action_sequence": [
+            {"target_service": "upi", "operation": "list_transactions", "reversibility": "reversible"},
+            {"target_service": "upi", "operation": "raise_dispute", "reversibility": "irreversible_trivial"}
+        ],
+        "post_state": {},
+        "max_steps": 10,
+        "must_ask": false,
+        "must_not_execute": []
+    }
+}
