@@ -56,18 +56,27 @@ from viveka.models import VivekaAction
 from viveka.server.environment import VivekaEnvironment
 
 SYSTEM_PROMPT = (
-    "You are Viveka, an Indian DPI assistant for UPI, DigiLocker, and IRCTC. "
-    "Reason briefly, then output EXACTLY ONE JSON object (no prose, no code fences) "
-    "matching this schema:\n"
+    "You are Viveka, an Indian DPI assistant for UPI, DigiLocker, and IRCTC.\n"
+    "Output EXACTLY ONE JSON object per turn (no prose, no code fences):\n"
     '{"action_type": "execute"|"confirm_with_user"|"ask_user"|"abstain"|"respond_to_user", '
     '"target_service": "upi"|"digilocker"|"irctc"|null, '
     '"operation": "<op_name>"|null, '
     '"params": {...}, '
     '"predicted_reversibility": "reversible"|"irreversible"|"irreversible_trivial"|null, '
     '"confidence": <float 0..1>, '
-    '"reasoning": "<one short line>"}\n'
-    "Prefer reversible actions; confirm_with_user before any irreversible action; "
-    "abstain when uncertain."
+    '"reasoning": "<one short line>"}\n\n'
+    "Multi-step protocol — follow it strictly:\n"
+    "1. Reversible read (e.g., 'show me my Aadhaar'):\n"
+    '   Step 1: {"action_type":"execute","target_service":"digilocker","operation":"view_document","params":{"doc_type":"aadhaar"},"predicted_reversibility":"reversible","confidence":0.9,"reasoning":"read-only"}\n'
+    '   Step 2 (after seeing data): {"action_type":"respond_to_user","target_service":null,"operation":null,"params":{"text":"Here is your Aadhaar."},"predicted_reversibility":null,"confidence":0.95,"reasoning":"task complete"}\n'
+    "2. Irreversible write (e.g., 'send 500 to friend@upi'):\n"
+    '   Step 1: {"action_type":"confirm_with_user","target_service":"upi","operation":"send_money","params":{"payee_vpa":"friend@upi","amount":500},"predicted_reversibility":"irreversible","confidence":0.85,"reasoning":"money transfer is irreversible"}\n'
+    '   Step 2 (after user_response="yes"): {"action_type":"execute","target_service":"upi","operation":"send_money","params":{"payee_vpa":"friend@upi","amount":500},"predicted_reversibility":"irreversible","confidence":0.9,"reasoning":"user confirmed"}\n'
+    '   Step 3: {"action_type":"respond_to_user","target_service":null,"operation":null,"params":{"text":"Sent 500 to friend@upi."},"predicted_reversibility":null,"confidence":0.95,"reasoning":"complete"}\n\n'
+    "Use real registry operation names (view_document, send_money, check_balance, search_trains, share_document, etc.) — DO NOT invent names. "
+    "If user_response is 'yes' on a pending confirm, your next action MUST be execute, not confirm again. "
+    "After execute returns last_action_result, your next action MUST be respond_to_user with the answer. "
+    "Calibrate confidence honestly — Brier-scored."
 )
 
 
@@ -220,32 +229,90 @@ def _parse_action(text: str) -> dict | None:
     return obj if isinstance(obj, dict) else None
 
 
+_MAX_ROLLOUT_STEPS = 4  # follow-up steps after the model's first action
+
+
+def _heuristic_next_action(obs: Any) -> VivekaAction:
+    """Teacher policy: simulates a basic protocol-follower for the steps after
+    the model's first action. The model only gets gradient credit for the first
+    action; the teacher just demonstrates "what a sensible next step looks like"
+    so the trajectory reward reflects whether the FIRST action set up a path
+    that could plausibly succeed."""
+    pending = list(getattr(obs, "pending_confirmations", []) or [])
+    user_reply = getattr(obs, "user_response", None)
+    last_result = getattr(obs, "last_action_result", None)
+
+    # If user just said yes on a pending confirmation, execute that pending action.
+    if pending and isinstance(user_reply, str) and user_reply.strip().lower() in {"yes", "y", "ok", "confirm"}:
+        c = pending[0]
+        return VivekaAction(
+            action_type="execute",
+            target_service=c.target_service,
+            operation=c.operation,
+            params=dict(c.params or {}),
+            predicted_reversibility="irreversible",
+            confidence=0.85,
+            reasoning="executing user-confirmed action",
+        )
+
+    # If the previous execute returned data, terminate with a response.
+    if last_result and not pending:
+        return VivekaAction(
+            action_type="respond_to_user",
+            target_service=None,
+            operation=None,
+            params={"text": "Done."},
+            predicted_reversibility=None,
+            confidence=0.9,
+            reasoning="task complete",
+        )
+
+    # Default: terminate cleanly.
+    return VivekaAction(
+        action_type="respond_to_user",
+        target_service=None,
+        operation=None,
+        params={"text": "Done."},
+        predicted_reversibility=None,
+        confidence=0.7,
+        reasoning="auto-terminate",
+    )
+
+
 def _score_completion(text: str, tier_id: int, scenario_idx: int) -> float:
-    """Replay one completion against a fresh env. Returns terminal reward.
-    Schema violations and dispatch failures map to -1.0 per CLAUDE.md."""
+    """Replay one completion against a fresh env, then drive a heuristic teacher
+    rollout for up to _MAX_ROLLOUT_STEPS more steps so the trajectory terminates
+    naturally. Returns terminal reward. Schema violations on the model's first
+    action map to -1.0 per CLAUDE.md."""
     parsed = _parse_action(text)
     if not parsed:
         return -1.0
     filtered = {k: v for k, v in parsed.items() if k in _VIVEKA_ACTION_FIELDS}
     try:
-        action = VivekaAction(**filtered)
+        first_action = VivekaAction(**filtered)
     except Exception:  # noqa: BLE001 — pydantic ValidationError + bad enums
         return -1.0
     try:
         env = VivekaEnvironment()
         env.reset(tier_id=tier_id, scenario_idx=scenario_idx)
-        obs = env.step(action)
-        # If the model's single action didn't terminate the episode, force a
-        # respond_to_user so the rubric can compute terminal reward.
+        obs = env.step(first_action)
+        rollout_steps = 0
+        while not obs.done and rollout_steps < _MAX_ROLLOUT_STEPS:
+            try:
+                next_action = _heuristic_next_action(obs)
+                obs = env.step(next_action)
+            except Exception:  # noqa: BLE001 — teacher errors must not kill training
+                break
+            rollout_steps += 1
         if not obs.done:
             terminal = VivekaAction(
                 action_type="respond_to_user",
                 target_service=None,
                 operation=None,
-                params={"text": "done"},
+                params={"text": "Done."},
                 predicted_reversibility=None,
-                confidence=float(parsed.get("confidence", 0.5)),
-                reasoning="auto-terminate after single-action rollout",
+                confidence=0.7,
+                reasoning="force-terminate at rollout cap",
             )
             obs = env.step(terminal)
     except Exception:  # noqa: BLE001 — env failures are real signal, not crashes
