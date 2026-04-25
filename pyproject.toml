@@ -22,6 +22,7 @@ train = [
     "transformers>=4.40.0",
     "accelerate>=0.30.0",
     "datasets>=2.18.0",
+    "mergekit>=0.0.4",
 ]
 
 [project.scripts]
