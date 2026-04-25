@@ -239,6 +239,53 @@ def _run_episode_silent(
     return obs, history
 
 
+def _compare_all_scenarios() -> str:
+    options = _scenario_options()
+    if not options:
+        return "_No scenarios available._"
+
+    rows = [
+        "## 🆚 Naive vs Heuristic — full bench",
+        "",
+        "| Scenario | Naive | Heuristic | Δ |",
+        "|---|---|---|---|",
+    ]
+    naive_total = 0.0
+    heur_total = 0.0
+    n = 0
+    for choice in options:
+        try:
+            tier_id, idx = _parse_scenario_choice(choice)
+            scenario = load_scenario_by_tier(tier_id, idx)
+        except Exception:
+            continue
+        try:
+            naive_obs, _ = _run_episode_silent(scenario, tier_id, idx, "naive")
+            heur_obs, _ = _run_episode_silent(scenario, tier_id, idx, "heuristic")
+        except Exception:
+            continue
+        nr = naive_obs.reward if naive_obs.reward is not None else 0.0
+        hr = heur_obs.reward if heur_obs.reward is not None else 0.0
+        delta = hr - nr
+        sign = "+" if delta > 0 else ""
+        rows.append(f"| `{choice}` | {nr:.3f} | {hr:.3f} | {sign}{delta:.3f} |")
+        naive_total += nr
+        heur_total += hr
+        n += 1
+
+    if n == 0:
+        return "_No scenarios ran successfully._"
+
+    naive_mean = naive_total / n
+    heur_mean = heur_total / n
+    mean_delta = heur_mean - naive_mean
+    sign = "+" if mean_delta > 0 else ""
+    rows.append(
+        f"| **MEAN ({n} scenarios)** | **{naive_mean:.3f}** | **{heur_mean:.3f}** | **{sign}{mean_delta:.3f}** |"
+    )
+    return "\n".join(rows)
+
+
 def _compare_policies(scenario_choice: str) -> str:
     if not scenario_choice:
         return "_Pick a scenario first._"
@@ -428,6 +475,7 @@ def create_gradio_app() -> gr.Blocks:
                 )
                 run_btn = gr.Button("▶ Run scenario", variant="primary")
                 compare_btn = gr.Button("🆚 Compare both policies", variant="secondary")
+                compare_all_btn = gr.Button("🆚 Compare on all scenarios")
                 reset_btn = gr.Button("↻ Reset")
                 manual_action_in = gr.JSON(
                     label="Manual action (only used when policy=manual)",
@@ -443,6 +491,7 @@ def create_gradio_app() -> gr.Blocks:
                 signals_json = gr.JSON(label="Reward signals", value={})
                 final_md = gr.Markdown("")
                 comparison_md = gr.Markdown("")
+                comparison_all_md = gr.Markdown("")
 
         run_btn.click(
             fn=_run_full,
@@ -453,6 +502,11 @@ def create_gradio_app() -> gr.Blocks:
             fn=_compare_policies,
             inputs=[scenario_dd],
             outputs=[comparison_md],
+        )
+        compare_all_btn.click(
+            fn=_compare_all_scenarios,
+            inputs=[],
+            outputs=[comparison_all_md],
         )
         reset_btn.click(
             fn=_reset_scenario,

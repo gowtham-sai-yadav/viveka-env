@@ -7,6 +7,7 @@ import gradio as gr
 from viveka.models import VivekaAction
 from viveka.server.environment import VivekaEnvironment
 from viveka.server.gradio_ui import (
+    _compare_all_scenarios,
     _compare_policies,
     _heuristic_policy,
     _naive_policy,
@@ -79,3 +80,12 @@ def test_compare_policies_handles_empty_choice():
 def test_compare_policies_handles_unknown_scenario():
     md = _compare_policies("t9_nope/scenario_xxx")
     assert "Error" in md or "not found" in md.lower()
+
+
+def test_compare_all_scenarios_returns_table_with_mean():
+    md = _compare_all_scenarios()
+    assert "Naive vs Heuristic" in md
+    assert "MEAN" in md
+    assert "scenarios" in md
+    # At minimum the existing T1 + T2 + T3 + T4 scenarios produce one row each.
+    assert md.count("\n| `") >= 10
