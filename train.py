@@ -526,17 +526,16 @@ def main() -> None:
     dataset = build_dataset(tier_mix, n=args.episodes, seed=args.seed)
 
     bf16 = is_bfloat16_supported()
-    # GRPO config tuned per Sullivan & Koller 2025 ("GRPO is Secretly a PRM"):
-    # num_generations >= 8 + temperature 1.0 unlocks branching diversity in
-    # group rollouts, which makes the group-relative advantage assign per-step
-    # credit (Bellman-style) without explicit step labels. We use G=16 here.
-    # 4× rollout cost is acceptable on T4/A10G for 200 episodes.
+    # GRPO config: num_generations=4 is the only setting that fits on T4.
+    # Tried Sullivan 2025's G=16/temp=1.0 (richer gradient per step) — measured
+    # 270s/step on Qwen2.5-1.5B+T4, projected 30hr for 400 steps. Reverted.
+    # Keep G=4 so each step is ~15s and 800 episodes finish in ~90 min.
     cfg = GRPOConfig(
         output_dir=args.output_dir,
         per_device_train_batch_size=1,
-        gradient_accumulation_steps=16,    # must be divisible by num_generations
-        num_generations=16,                # Sullivan 2025: was 4, bumped for PRM-effect
-        temperature=1.0,                   # Sullivan 2025: was implicit ~0.7, force divergence
+        gradient_accumulation_steps=4,     # must be divisible by num_generations
+        num_generations=4,                 # T4-feasible; G=16 was 30hr ETA
+        temperature=1.0,                   # Sullivan 2025: forces sample divergence
         max_prompt_length=512,
         max_completion_length=768,
         learning_rate=5e-6,
