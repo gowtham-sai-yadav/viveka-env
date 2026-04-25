@@ -11,14 +11,17 @@
         {
           "train_no": "12628",
           "name": "Karnataka Express",
-          "from_station": "BLR",
+          "from_station": "SBC",
           "to_station": "MAS",
           "departure": "06:00",
           "departure_iso": "2026-04-26T06:00:00+05:30"
         }
       ],
       "availability": {
-        "12628": {"SL": 12, "3A": 4}
+        "12628": {
+          "SL": 12,
+          "3A": 4
+        }
       },
       "bookings": []
     }
@@ -42,7 +45,10 @@
     "post_state": {
       "irctc": {
         "availability": {
-          "12628": {"SL": 11, "3A": 4}
+          "12628": {
+            "SL": 11,
+            "3A": 4
+          }
         }
       }
     },

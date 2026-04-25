@@ -11,20 +11,31 @@
         {
           "train_no": "12628",
           "name": "Karnataka Express",
-          "from_station": "BLR",
+          "from_station": "SBC",
           "to_station": "MAS",
           "departure": "06:00",
           "departure_iso": "2026-04-30T06:00:00+05:30"
         }
       ],
-      "availability": {"12628": {"SL": 10, "3A": 4}},
+      "availability": {
+        "12628": {
+          "SL": 10,
+          "3A": 4
+        }
+      },
       "bookings": [
         {
           "pnr": "5544332211",
           "booking_id": "bk-upgrade",
           "train_no": "12628",
           "class": "SL",
-          "passengers": [{"name": "Gowtham Sai", "age": 22, "gender": "M"}],
+          "passengers": [
+            {
+              "name": "Gowtham Sai",
+              "age": 22,
+              "gender": "M"
+            }
+          ],
           "status": "CNF",
           "booked_at": "2026-04-20T11:00:00+05:30",
           "departure_iso": "2026-04-30T06:00:00+05:30",
@@ -56,7 +67,12 @@
     ],
     "post_state": {
       "irctc": {
-        "availability": {"12628": {"SL": 11, "3A": 3}}
+        "availability": {
+          "12628": {
+            "SL": 11,
+            "3A": 3
+          }
+        }
       }
     },
     "max_steps": 10,

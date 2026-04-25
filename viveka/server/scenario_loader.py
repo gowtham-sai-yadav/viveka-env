@@ -23,7 +23,7 @@ _TIER_DIRS = {
 class GroundTruthAction(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    target_service: Literal["upi", "digilocker", "irctc"]
+    target_service: Literal["upi", "digilocker", "irctc", "banking", "telecom"]
     operation: str
     reversibility: Literal["reversible", "irreversible", "irreversible_trivial"]
 

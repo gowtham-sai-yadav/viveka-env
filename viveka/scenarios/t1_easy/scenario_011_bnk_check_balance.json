@@ -1,0 +1,46 @@
+{
+  "scenario_id": "scenario_011_bnk_check_balance",
+  "tier_id": 1,
+  "title": "Check SBI savings account balance",
+  "user_message": "What's my SBI savings account balance right now?",
+  "user_language": "en",
+  "initial_state": {
+    "banking": {
+      "accounts": [
+        {
+          "account_id": "BNK-ACC-7382916",
+          "bank": "SBI",
+          "account_type": "savings",
+          "ifsc": "SBIN0001234",
+          "balance": 48250.75,
+          "holder_name": "Rohan Sharma"
+        }
+      ],
+      "beneficiaries": [],
+      "cards": []
+    }
+  },
+  "user_oracle": {},
+  "expected": {
+    "ground_truth_action_sequence": [
+      {
+        "target_service": "banking",
+        "operation": "check_account_balance",
+        "reversibility": "reversible"
+      }
+    ],
+    "post_state": {
+      "banking": {
+        "accounts": [
+          {
+            "account_id": "BNK-ACC-7382916",
+            "balance": 48250.75
+          }
+        ]
+      }
+    },
+    "max_steps": 5,
+    "must_ask": false,
+    "must_not_execute": []
+  }
+}

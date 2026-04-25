@@ -19,11 +19,13 @@ from viveka.server.reversibility_registry import lookup
 from viveka.server.rubric import VivekaRubric
 from viveka.server.scenario_loader import load_scenario_by_tier
 from viveka.server.services._base import MockService, ServiceError
+from viveka.server.services.banking import BankingService
 from viveka.server.services.digilocker import DigiLockerService
 from viveka.server.services.irctc import IrctcService
+from viveka.server.services.telecom import TelecomService
 from viveka.server.services.upi import UpiService
 
-ALL_SERVICES = ["upi", "digilocker", "irctc"]
+ALL_SERVICES = ["upi", "digilocker", "irctc", "banking", "telecom"]
 MAX_STEPS = 30
 MAX_STRING_LEN = 5000
 
@@ -41,6 +43,8 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
             "upi": UpiService(),
             "digilocker": DigiLockerService(),
             "irctc": IrctcService(),
+            "banking": BankingService(),
+            "telecom": TelecomService(),
         }
         self._actions_taken: list[dict[str, Any]] = []
         self._pending_confirmations: list[PendingConfirmation] = []

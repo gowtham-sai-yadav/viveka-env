@@ -40,6 +40,30 @@ _REGISTRY: dict[tuple[str, str], REVERSIBILITY] = {
     ("irctc", "book_ticket"): "irreversible",
     ("irctc", "cancel_booking"): "irreversible",
     ("irctc", "modify_booking"): "irreversible",
+
+    # ── Banking / RBI ─────────────────────────────────────────────────────
+    ("banking", "check_account_balance"): "reversible",
+    ("banking", "list_beneficiaries"): "reversible",
+    ("banking", "view_statement"): "reversible",
+    ("banking", "verify_ifsc"): "reversible",
+    ("banking", "add_beneficiary"): "irreversible",
+    ("banking", "initiate_neft"): "irreversible",
+    ("banking", "verify_cvv_for_cnp"): "irreversible",
+    ("banking", "change_atm_pin"): "irreversible",
+    ("banking", "remove_beneficiary"): "irreversible_trivial",
+    ("banking", "generate_virtual_card"): "irreversible_trivial",
+
+    # ── Telecom / TRAI ────────────────────────────────────────────────────
+    ("telecom", "check_sim_status"): "reversible",
+    ("telecom", "check_taf_cop"): "reversible",
+    ("telecom", "send_otp"): "reversible",
+    ("telecom", "verify_otp"): "reversible",
+    ("telecom", "block_sms"): "irreversible_trivial",
+    ("telecom", "deactivate_sim"): "irreversible_trivial",
+    ("telecom", "request_port_out"): "irreversible",
+    ("telecom", "confirm_port_out"): "irreversible",
+    ("telecom", "link_aadhaar_to_sim"): "irreversible",
+    ("telecom", "request_new_sim"): "irreversible",
 }
 
 

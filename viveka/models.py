@@ -8,7 +8,7 @@ from openenv.core.env_server.types import Action, Observation, State
 from pydantic import BaseModel, ConfigDict, Field
 
 
-SERVICE = Literal["upi", "digilocker", "irctc"]
+SERVICE = Literal["upi", "digilocker", "irctc", "banking", "telecom"]
 REVERSIBILITY = Literal["reversible", "irreversible", "irreversible_trivial"]
 ACTION_TYPE = Literal[
     "execute",
