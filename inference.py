@@ -182,18 +182,37 @@ def _extract_first_json(text: str) -> dict[str, Any] | None:
 class FrozenQwenPolicy(Policy):
     name = "qwen_base"
 
-    def __init__(self, model_id: str = "Qwen/Qwen2-0.5B-Instruct") -> None:
+    def __init__(self, model_id: str = "Qwen/Qwen2-0.5B-Instruct", adapter_path: str | None = None) -> None:
+        import json as _json
+        from pathlib import Path as _Path
+
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
+        # If model_id points to a LoRA directory (has adapter_config.json), load the
+        # base from that config and apply the adapter on top. Otherwise treat
+        # model_id as the base directly.
+        adapter_dir: str | None = adapter_path
+        base_model_id = model_id
+        candidate = _Path(model_id)
+        if candidate.is_dir() and (candidate / "adapter_config.json").exists():
+            with open(candidate / "adapter_config.json") as _f:
+                cfg = _json.load(_f)
+            base_model_id = cfg.get("base_model_name_or_path", "Qwen/Qwen2.5-1.5B-Instruct")
+            adapter_dir = str(candidate)
+            self.name = f"qwen_trained({_Path(adapter_dir).name})"
+
         self._device = "cuda" if torch.cuda.is_available() else "cpu"
         dtype = torch.bfloat16 if self._device == "cuda" else torch.float32
-        self._tok = AutoTokenizer.from_pretrained(model_id)
+        self._tok = AutoTokenizer.from_pretrained(base_model_id)
         self._model = AutoModelForCausalLM.from_pretrained(
-            model_id,
+            base_model_id,
             torch_dtype=dtype,
             device_map="auto" if self._device == "cuda" else None,
         )
+        if adapter_dir is not None:
+            from peft import PeftModel
+            self._model = PeftModel.from_pretrained(self._model, adapter_dir)
         if self._device == "cpu":
             self._model = self._model.to("cpu")
         self._model.eval()
@@ -762,11 +781,21 @@ def _enumerate_scenarios(
     return pairs[:max_scenarios] if max_scenarios > 0 else pairs
 
 
-def _build_policy(name: str, model: str | None = None, cost_cap: float = 2.0) -> Policy:
+def _build_policy(
+    name: str,
+    model: str | None = None,
+    cost_cap: float = 2.0,
+    adapter: str | None = None,
+) -> Policy:
     if name == "random":
         return RandomPolicy()
     if name == "qwen":
-        return FrozenQwenPolicy()
+        # If --model is a HuggingFace id like "Qwen/Qwen2.5-1.5B-Instruct" use it as base.
+        # If --model is a local LoRA dir, FrozenQwenPolicy auto-detects and loads via peft.
+        return FrozenQwenPolicy(
+            model_id=model or "Qwen/Qwen2-0.5B-Instruct",
+            adapter_path=adapter,
+        )
     if name == "gpt4o":
         return GPT4oMiniPolicy(cost_cap_usd=cost_cap, model=model or "gpt-4o-mini")
     raise ValueError(f"unknown policy: {name}")
@@ -776,8 +805,12 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--policy", choices=["random", "qwen", "gpt4o", "all"], default="random")
     p.add_argument("--model", default=None,
-                   help="OpenAI model id when --policy=gpt4o (default: gpt-4o-mini). "
-                        "Examples: gpt-4o-mini, gpt-4o, gpt-5.2")
+                   help="Model id. For --policy=qwen: HuggingFace id (e.g. Qwen/Qwen2.5-1.5B-Instruct) "
+                        "or path to a LoRA adapter dir (auto-detects base from adapter_config.json). "
+                        "For --policy=gpt4o: OpenAI model id (default: gpt-4o-mini).")
+    p.add_argument("--adapter", default=None,
+                   help="Optional LoRA adapter dir applied on top of --model (qwen policy only). "
+                        "Use this if --model is the base HF id and you want to layer a trained adapter.")
     p.add_argument("--tier-mix", default="1,2,3,4")
     p.add_argument("--max-scenarios", type=int, default=30,
                    help="Total scenarios across tiers. 0 = all. Ignored if --per-tier is set.")
@@ -798,7 +831,7 @@ def main() -> None:
     bundle: dict[str, Any] = {}
     for pname in policies:
         env = VivekaEnvironment()
-        policy = _build_policy(pname, model=args.model, cost_cap=args.cost_cap)
+        policy = _build_policy(pname, model=args.model, cost_cap=args.cost_cap, adapter=args.adapter)
         label = policy.name
         rows: list[dict[str, Any]] = []
         for t, i in pairs:
