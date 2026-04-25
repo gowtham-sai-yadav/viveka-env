@@ -470,7 +470,7 @@ def main() -> None:
         warmup_ratio=0.1,
         lr_scheduler_type="cosine",
         optim="paged_adamw_8bit",
-        beta=0.0,
+        beta=0.04,
         max_grad_norm=1.0,
         save_strategy="steps",
         save_steps=50,
