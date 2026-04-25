@@ -1,0 +1,29 @@
+service,metric,value,unit,source_id,year,notes
+banking,card_fraud_base_rate,0.00172,fraction,MLG_ULB_CCFD_2013,2013,492 frauds in 284807 EU card txns
+banking,fraud_amount_skew_ratio_median,0.42,ratio,MLG_ULB_CCFD_2013,2013,median fraud EUR 9.25 vs legit EUR 22
+banking,paysim_transfer_fraud_rate,0.0077,fraction,PAYSIM_KAGGLE,2017,fraud share of TRANSFER ops
+banking,paysim_cashout_fraud_rate,0.0018,fraction,PAYSIM_KAGGLE,2017,fraud share of CASH_OUT ops
+banking,paysim_mule_window_minutes,5,minutes,PAYSIM_KAGGLE,2017,typical TRANSFER->CASH_OUT lag
+banking,rbi_digital_fraud_loss_inr_cr,13930,inr_crore,RBI_ANNUAL_REPORT_FY24_25,2025,FY24 reported value
+banking,rbi_reported_fraud_cases,29000,count,RBI_ANNUAL_REPORT_FY24_25,2025,FY24 lower bound
+banking,rbi_avg_loss_yoy_multiplier,9.0,ratio,RBI_ANNUAL_REPORT_FY24_25,2025,avg loss per case YoY
+banking,ombudsman_unknown_beneficiary_share,0.22,fraction,RBI_OMBUDSMAN_FY23,2023,share of digital banking complaints
+banking,ombudsman_cnp_unauthorised_share,0.14,fraction,RBI_OMBUDSMAN_FY23,2023,card complaint sub-class
+banking,ombudsman_total_complaints,703000,count,RBI_OMBUDSMAN_FY23,2023,Integrated Ombudsman Scheme FY23
+banking,gitguardian_leaked_secrets_2024,23800000,count,GITGUARDIAN_SOTSS_2025,2025,new secrets on public GitHub 2024
+banking,gitguardian_2yr_validity_rate,0.70,fraction,GITGUARDIAN_SOTSS_2025,2025,leaked 2022 still valid 2024
+banking,gitguardian_avg_revoke_days,27,days,GITGUARDIAN_SOTSS_2025,2025,time to revoke after leak
+banking,fico_cnp_share_of_card_fraud,0.72,fraction,FICO_EMARKETER_CNP_2024,2024,US 2024 midpoint of 71-74
+banking,fico_global_cnp_loss_2026_usd_b,28.1,usd_billion,FICO_EMARKETER_CNP_2024,2024,projection for 2026
+banking,fico_avg_cnp_txn_usd,215,usd,FICO_EMARKETER_CNP_2024,2024,avg CNP fraud ticket
+banking,pcidss_cvv_storage_allowed,0,boolean,PCI_DSS_V4,2022,Req 3.2 forbids CVV storage
+banking,pcidss_afa_required_for_cde,1,boolean,PCI_DSS_V4,2022,Req 8.4 AFA mandate
+banking,pcidss_pan_clear_digits_max,10,count,PCI_DSS_V4,2022,6 BIN + 4 last
+banking,certin_anydesk_reported_cases,12000,count,CERT_IN_CIAD_2022_0035,2022,SIM-swap + remote-access pan-India
+banking,certin_recommended_cooling_minutes,30,minutes,CERT_IN_CIAD_2022_0035,2022,per-beneficiary cooling period
+banking,scenario_count_total,11,count,VIVEKA_INTERNAL,2026,banking service scenarios
+banking,scenario_count_t1,1,count,VIVEKA_INTERNAL,2026,
+banking,scenario_count_t2,1,count,VIVEKA_INTERNAL,2026,
+banking,scenario_count_t3,4,count,VIVEKA_INTERNAL,2026,
+banking,scenario_count_t4,5,count,VIVEKA_INTERNAL,2026,
+banking,real_anchored_ratio,0.727,fraction,VIVEKA_INTERNAL,2026,exceeds 0.6 target

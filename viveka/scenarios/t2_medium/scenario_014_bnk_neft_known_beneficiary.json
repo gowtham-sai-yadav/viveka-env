@@ -2,8 +2,8 @@
   "scenario_id": "scenario_014_bnk_neft_known_beneficiary",
   "tier_id": 2,
   "title": "NEFT transfer to existing beneficiary",
-  "user_message": "Send Rs 12000 via NEFT to my landlord Suresh, he's already saved as a beneficiary.",
-  "user_language": "en",
+  "user_message": "Suresh ko 12000 rupaye NEFT kar do \u2014 landlord hai mera, beneficiary me already saved hai. Rent ka payment hai.",
+  "user_language": "hi-en",
   "initial_state": {
     "banking": {
       "accounts": [

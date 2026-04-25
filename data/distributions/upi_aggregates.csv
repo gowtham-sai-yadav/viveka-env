@@ -1,0 +1,6 @@
+dataset,year,size_rows,fraud_rate,key_metric_1,key_metric_2
+PaySim,2017,6362620,0.00129,fraud_in_TRANSFER_and_CASH_OUT_only_pct=100,isFlaggedFraud_threshold=200000
+OnlinePaymentsFraud_Kartik2112,2020,1852394,0.005,fraud_amount_bimodal_micro_lt_500_and_large_drain,fraud_peak_hours_22_to_03
+RBI_AnnualReport_FY24_25,2025,,0.0001approx,upi_fraud_cases_FY23_24=1342000,upi_fraud_value_inr_cr_FY23_24=1087
+NPCI_PublicAlerts_2025,2025,,,balance_inquiry_cap_per_day=50,account_discovery_cap_per_day=25
+RBI_Sachet_Portal,2025,,,categories=regulator_impersonation_unregulated_deposits,public_bulletins_active=true

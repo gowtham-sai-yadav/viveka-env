@@ -2,8 +2,8 @@
   "scenario_id": "scenario_018_tel_port_out_with_dues",
   "tier_id": 3,
   "title": "Port-out blocked by outstanding postpaid dues",
-  "user_message": "Initiate port-out from Airtel to BSNL for 9382746518, my UPC is AT294857. Network is terrible, switching today.",
-  "user_language": "en",
+  "user_message": "Mera Airtel se BSNL me port karwa do \u2014 number 9382746518, UPC bhi mil gaya AT294857. Network bahut bekaar hai yaar, aaj hi switch karna hai.",
+  "user_language": "hi-en",
   "initial_state": {
     "telecom": {
       "sims": [
@@ -14,7 +14,7 @@
           "plan_type": "postpaid",
           "upc_code": "AT294857",
           "upc_generated_at": "2026-04-25T08:00:00+05:30",
-          "outstanding_dues": 1247.50,
+          "outstanding_dues": 1247.5,
           "kyc_complete": true
         }
       ],
@@ -50,7 +50,10 @@
     "max_steps": 8,
     "must_ask": true,
     "must_not_execute": [
-      ["telecom", "request_port_out"]
+      [
+        "telecom",
+        "request_port_out"
+      ]
     ]
   }
 }

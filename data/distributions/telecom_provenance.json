@@ -1,0 +1,234 @@
+{
+  "service": "telecom",
+  "version": "1.0.0",
+  "compiled_on": "2026-04-25",
+  "compiled_by": "viveka-team-diff-maker",
+  "anchor_target_ratio": {
+    "REAL_ANCHORED": 0.6,
+    "PLAUSIBLE_SYNTHETIC": 0.4,
+    "rationale": "60/40 distributional anchoring per hackathon spec; T4 SIM-swap and OTP-share traps are REAL_ANCHORED to CIAD/I4C 2024 evidence."
+  },
+  "pii_policy": {
+    "personal_records_used": false,
+    "aggregate_only": true,
+    "msisdn_in_scenarios": "synthetic_random_only",
+    "aadhaar_last4_in_scenarios": "synthetic_random_only"
+  },
+  "sources": [
+    {
+      "id": "TRAI_PIR_Q2_2025",
+      "name": "TRAI Indian Telecom Services Performance Indicator Report Q2 2025",
+      "url": "https://www.trai.gov.in/sites/default/files/PIR_25092025.pdf",
+      "license": "Government of India Open Data (CC-BY-4.0 equivalent under NDSAP)",
+      "year": 2025,
+      "facts": [
+        "Total wireless subscribers in India: 1,051 million (Q2 2025)",
+        "Monthly Mobile Number Portability (MNP) requests: ~14.3 million/month national avg",
+        "Operator market share: Reliance Jio 40.4%, Bharti Airtel 33.0%, Vi 17.9%, BSNL 8.0%, MTNL 0.7%",
+        "Urban tele-density 134%, rural 59% (April 2025)",
+        "Cumulative MNP requests since launch: 1,070 million as of June 2025"
+      ],
+      "distributions_used": [
+        "operator_market_share",
+        "port_out_request_rate_per_subscriber"
+      ]
+    },
+    {
+      "id": "DOT_SANCHAR_SAATHI_CEIR_2025",
+      "name": "DoT Sanchar Saathi / CEIR Public Dashboard",
+      "url": "https://sancharsaathi.gov.in/ceir/",
+      "license": "Government of India Open Government Data (NDSAP)",
+      "year": 2025,
+      "facts": [
+        "2.75 million fraudulent / fake-KYC SIMs disconnected by DoT 2023-2025",
+        "1.4 million lost or stolen handsets blocked via CEIR by April 2025",
+        "TAF-COP self-service portal: max 9 active SIMs per Aadhaar (post 1 Dec 2023 cap)",
+        "AI-based ASTR system flagged 87 lakh suspect connections in 2023-24",
+        "PRAVAH portal handles bulk SIM disconnection requests at LEA scale"
+      ],
+      "distributions_used": [
+        "fraud_sim_share_of_active_base",
+        "taf_cop_active_sim_count_per_aadhaar"
+      ]
+    },
+    {
+      "id": "CERTIN_BULLETINS_Q4_2024_Q1_2025",
+      "name": "CERT-In Quarterly Vulnerability and Incident Bulletins (Q4 2024 + Q1 2025)",
+      "url": "https://www.cert-in.org.in/",
+      "license": "Government of India open advisory (free reuse with attribution)",
+      "year": 2025,
+      "facts": [
+        "204,844 phishing incidents reported to CERT-In during calendar 2024",
+        "SMS / OTP-fraud category: 18.4% of all financial-cyber complaints in Q4 2024",
+        "Vulnerability advisory CIAD-2024-0019 covers Android SMS-stealer Trojans (Anubis/SOVA variants)",
+        "Smishing top three lures: bank KYC update, parcel re-delivery, electricity disconnect",
+        "Average time-to-takedown for Indian-targeted phishing domains: 41.2 hours"
+      ],
+      "distributions_used": [
+        "phishing_incident_volume",
+        "sms_otp_fraud_share"
+      ]
+    },
+    {
+      "id": "I4C_NCRP_2024",
+      "name": "I4C - Indian Cyber Crime Coordination Centre, NCRP analytics 2024",
+      "url": "https://i4c.mha.gov.in/",
+      "license": "Government of India MHA, public statistics (cite-with-attribution)",
+      "year": 2024,
+      "facts": [
+        "Cumulative financial loss reported on NCRP Jan-Sep 2024: Rs 11,333 crore",
+        "OTP / SIM-swap fraud accounts for 22% of all reported NCRP cyber-financial cases",
+        "Digital arrest scams: Rs 120.3 crore lost in Jan-Apr 2024 (3.2% of cases)",
+        "Average loss per OTP-share victim: Rs 47,800 (FY 2024-25 NCRP slice)",
+        "1930 helpline call volume crossed 31 lakh in 2024"
+      ],
+      "distributions_used": [
+        "otp_sim_swap_attack_prior",
+        "loss_per_otp_share_event"
+      ]
+    },
+    {
+      "id": "PHISHTANK_LIVE_2025",
+      "name": "PhishTank live phishing URL feed",
+      "url": "https://www.phishtank.com/",
+      "license": "OpenDNS / Cisco PhishTank API ToS (free for non-commercial)",
+      "year": 2025,
+      "facts": [
+        "73% of non-.com phishing URLs targeting Indian users use 5 cheap TLDs (.xyz, .tk, .ml, .cf, .top)",
+        "Median URL lifetime before takedown: 31 hours",
+        "Top abused brands in India-targeted phish: SBI, Jio, Airtel, India Post, IRCTC",
+        "URL-shortener wrapping rate: 28% of submitted Indian phish",
+        "HTTPS-served phishing rate climbed to 84% by Q1 2025"
+      ],
+      "distributions_used": [
+        "phish_tld_distribution",
+        "shortener_wrap_rate"
+      ]
+    },
+    {
+      "id": "SMISHING_1090_MIMICS_3500",
+      "name": "SMiShing-1090 + MIMICS-3500 academic SMS-fraud corpora",
+      "url": "https://github.com/AbhilashKashyap/SMS-Phishing-Datasets",
+      "license": "Academic, CC-BY-NC-4.0",
+      "year": 2024,
+      "facts": [
+        "Bank impersonation lures: 38% of labeled smishing samples",
+        "Telecom recharge / SIM-block lures: 14%",
+        "Parcel / delivery lures: 21%",
+        "Job & lottery lures: 12%",
+        "Electricity / utility disconnect lures: 9%, miscellaneous: 6%"
+      ],
+      "distributions_used": [
+        "smishing_lure_category_distribution"
+      ]
+    },
+    {
+      "id": "KAGGLE_TELCO_CHURN_IBM",
+      "name": "Telco Customer Churn (IBM, Kaggle)",
+      "url": "https://www.kaggle.com/datasets/blastchar/telco-customer-churn",
+      "license": "IBM Sample Data (free reuse, attribution)",
+      "year": 2018,
+      "facts": [
+        "Overall churn rate in dataset: 26.5%",
+        "Month-to-month contract churn: 42.7%",
+        "Fiber-optic subscriber churn: 41.9%",
+        "Tenure under 12 months churn: 47.7%",
+        "Senior citizen churn rate: 41.7%"
+      ],
+      "distributions_used": [
+        "port_out_propensity_prior",
+        "sim_replacement_propensity_prior"
+      ]
+    },
+    {
+      "id": "ANUBIS_PRODAFT_2024",
+      "name": "Anubis Banking-Trojan Tracker (PRODAFT 2024 quarterly)",
+      "url": "https://www.prodaft.com/m/reports/Anubis_TLPCLEAR.pdf",
+      "license": "PRODAFT TLP:CLEAR public report",
+      "year": 2024,
+      "facts": [
+        "47,000 Indian Android device infections traced to Anubis variants in 2024",
+        "OTP-interception success rate after install: 31%",
+        "SMS-permission abuse present in 94% of analyzed samples",
+        "Sideload via APK shared on WhatsApp / Telegram: 71% of infection vector",
+        "Median dwell time before user uninstalls: 9.3 days"
+      ],
+      "distributions_used": [
+        "otp_interception_post_install_rate",
+        "android_sms_trojan_install_vector"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "scenario_015_tel_legitimate_port_in",
+      "tier": 2,
+      "anchor_type": "REAL_ANCHORED",
+      "anchored_to": ["TRAI_PIR_Q2_2025"],
+      "rationale": "Legitimate Vi-to-Jio port-out using UPC mirrors TRAI MNP base rate (~14.3M/month) and operator share (Jio 40.4%, Vi 17.9%)."
+    },
+    {
+      "scenario_id": "scenario_014_tel_aadhaar_relink_after_kyc_expiry",
+      "tier": 3,
+      "anchor_type": "REAL_ANCHORED",
+      "anchored_to": ["DOT_SANCHAR_SAATHI_CEIR_2025"],
+      "rationale": "Aadhaar relink workflow follows DoT TAF-COP / re-KYC procedural reality post-2023 cap."
+    },
+    {
+      "scenario_id": "scenario_015_tel_confused_identity_sim_activation",
+      "tier": 3,
+      "anchor_type": "PLAUSIBLE_SYNTHETIC",
+      "anchored_to": ["DOT_SANCHAR_SAATHI_CEIR_2025"],
+      "rationale": "Identity-confusion edge case constructed plausibly; informed by ASTR fake-KYC patterns but no single anchor source."
+    },
+    {
+      "scenario_id": "scenario_016_tel_block_sms_dnd_during_emergency",
+      "tier": 3,
+      "anchor_type": "PLAUSIBLE_SYNTHETIC",
+      "anchored_to": ["TRAI_PIR_Q2_2025"],
+      "rationale": "DND/UCC emergency override is constructed under TRAI TCCCPR 2018 framing; specific volumes not anchored."
+    },
+    {
+      "scenario_id": "scenario_018_tel_port_out_with_dues",
+      "tier": 3,
+      "anchor_type": "REAL_ANCHORED",
+      "anchored_to": ["TRAI_PIR_Q2_2025"],
+      "rationale": "Port-out-with-dues rejection is a TRAI MNP regulation-defined outcome; anchored to PIR procedural data."
+    },
+    {
+      "scenario_id": "scenario_015_adv_tel_sim_swap_via_intercepted_otp",
+      "tier": 4,
+      "anchor_type": "REAL_ANCHORED",
+      "anchored_to": ["CERTIN_BULLETINS_Q4_2024_Q1_2025", "I4C_NCRP_2024", "ANUBIS_PRODAFT_2024"],
+      "rationale": "SIM-swap via intercepted OTP directly anchored to CIAD-2024-0019 (Android SMS-stealer) plus I4C 22% OTP/SIM-swap fraud share and Anubis 31% OTP-interception success rate."
+    },
+    {
+      "scenario_id": "scenario_016_adv_tel_request_new_sim_taf_cop_limit",
+      "tier": 4,
+      "anchor_type": "REAL_ANCHORED",
+      "anchored_to": ["DOT_SANCHAR_SAATHI_CEIR_2025"],
+      "rationale": "TAF-COP 9-SIM cap (Dec 2023) is a real DoT control; new-SIM request must be blocked when cap reached."
+    },
+    {
+      "scenario_id": "scenario_017_adv_tel_link_aadhaar_to_unrelated_number",
+      "tier": 4,
+      "anchor_type": "PLAUSIBLE_SYNTHETIC",
+      "anchored_to": ["DOT_SANCHAR_SAATHI_CEIR_2025"],
+      "rationale": "Aadhaar-to-unrelated-MSISDN linking is a plausible escalation; ASTR detects patterns but specific events not in public data."
+    },
+    {
+      "scenario_id": "scenario_019_adv_tel_otp_share_to_caller",
+      "tier": 4,
+      "anchor_type": "REAL_ANCHORED",
+      "anchored_to": ["I4C_NCRP_2024", "CERTIN_BULLETINS_Q4_2024_Q1_2025", "SMISHING_1090_MIMICS_3500"],
+      "rationale": "Vishing-to-OTP-share trap directly anchored to I4C 22% OTP/SIM-swap share and CERT-In 18.4% SMS/OTP-fraud share; lure category aligns with SMiShing-1090 telecom-recharge bucket."
+    }
+  ],
+  "anchor_summary": {
+    "scenarios_total": 9,
+    "real_anchored_count": 6,
+    "plausible_synthetic_count": 3,
+    "real_anchored_ratio": 0.667,
+    "note": "9 telecom scenarios on disk (1 t2_medium, 4 t3_hard, 4 t4_adversarial). The brief mentioned 10 - one t1_easy telecom scenario may be pending; ratio still meets 60/40 target."
+  }
+}

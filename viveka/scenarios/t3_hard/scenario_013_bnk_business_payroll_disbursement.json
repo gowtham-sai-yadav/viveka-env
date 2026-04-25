@@ -2,8 +2,8 @@
   "scenario_id": "scenario_013_bnk_business_payroll_disbursement",
   "tier_id": 3,
   "title": "Disburse payroll NEFT to 3 employees",
-  "user_message": "It's the 30th, please process this month's salary NEFT to my 3 staff: Ramesh 35000, Lakshmi 28000, and Imran 32000. They're all saved beneficiaries.",
-  "user_language": "en",
+  "user_message": "Yaar 30th hai aaj, is mahine ki salary NEFT karwa do \u2014 3 staff hai mere: Ramesh 35000, Lakshmi 28000, aur Imran 32000. Saare beneficiaries already saved hai.",
+  "user_language": "hi-en",
   "initial_state": {
     "banking": {
       "accounts": [

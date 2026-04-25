@@ -1,0 +1,41 @@
+service,distribution_name,bucket,probability,source_id,notes
+irctc,class_mix,SL,0.45,S2_irctc_train_timetable,Sleeper dominant on long-distance
+irctc,class_mix,3A,0.28,S2_irctc_train_timetable,Mid-tier AC
+irctc,class_mix,2A,0.15,S2_irctc_train_timetable,Premium AC
+irctc,class_mix,1A,0.04,S2_irctc_train_timetable,Top tier rare
+irctc,class_mix,2S_GN,0.08,S2_irctc_train_timetable,Unreserved/second sitting
+irctc,departure_hour_bucket,04-08_IST,0.22,S2_irctc_train_timetable,Early morning
+irctc,departure_hour_bucket,08-12_IST,0.22,S2_irctc_train_timetable,Morning
+irctc,departure_hour_bucket,12-16_IST,0.14,S2_irctc_train_timetable,Afternoon
+irctc,departure_hour_bucket,16-20_IST,0.24,S2_irctc_train_timetable,Evening peak
+irctc,departure_hour_bucket,20-04_IST,0.18,S2_irctc_train_timetable,Overnight
+irctc,tatkal_window,AC_10_00_IST_D_minus_1,1.00,S3_tatkal_window_stats,Hard rule for 1A/2A/3A/CC/EC
+irctc,tatkal_window,SL_11_00_IST_D_minus_1,1.00,S3_tatkal_window_stats,Hard rule for SL/2S
+irctc,tatkal_surge,first_90s_share,0.70,S3_tatkal_window_stats,Median 60-80%; midpoint used
+irctc,refund_slab,gt_48h_full_minus_clerkage,0.55,S2_irctc_train_timetable,Most cancellations far ahead
+irctc,refund_slab,12h_to_48h_25pct_deduction,0.20,S2_irctc_train_timetable,Mid window
+irctc,refund_slab,4h_to_12h_50pct_deduction,0.15,S2_irctc_train_timetable,Late window
+irctc,refund_slab,post_chart_no_refund,0.10,S2_irctc_train_timetable,Adversarial surface
+irctc,hinglish_token_ratio,hindi_romanized,0.58,S5_semeval_hinglish_corpus,SemEval 2020 transactional
+irctc,hinglish_token_ratio,english,0.42,S5_semeval_hinglish_corpus,SemEval 2020 transactional
+irctc,hinglish_script,latin_romanized,0.92,S5_semeval_hinglish_corpus,Chat/voice register
+irctc,hinglish_script,devanagari,0.08,S5_semeval_hinglish_corpus,Minority in chat
+irctc,hinglish_cmi,mean,0.36,S5_semeval_hinglish_corpus,Code-mixing index mean
+irctc,phishing_tld,xyz,0.34,S6_phishtank_irctc,IRCTC-impersonation slice
+irctc,phishing_tld,top,0.21,S6_phishtank_irctc,IRCTC-impersonation slice
+irctc,phishing_tld,online,0.14,S6_phishtank_irctc,IRCTC-impersonation slice
+irctc,phishing_tld,info,0.10,S6_phishtank_irctc,IRCTC-impersonation slice
+irctc,phishing_tld,live,0.07,S6_phishtank_irctc,IRCTC-impersonation slice
+irctc,phishing_tld,other,0.14,S6_phishtank_irctc,Long tail >30 TLDs
+irctc,phishing_url_pattern,railway_verb_tld,0.42,S4_certin_irctc_scams,railway-rebooking[.]xyz family
+irctc,phishing_url_pattern,irctc_verb_tld,0.38,S4_certin_irctc_scams,irctc-refund[.]top family
+irctc,phishing_url_pattern,indianrail_verb_tld,0.20,S4_certin_irctc_scams,indianrail-helpdesk family
+irctc,od_pair_top,SBC_MAS,0.18,S1_indian_railway_stations,Bangalore-Chennai
+irctc,od_pair_top,SBC_BCT,0.14,S1_indian_railway_stations,Bangalore-Mumbai
+irctc,od_pair_top,NDLS_HWH,0.16,S1_indian_railway_stations,Delhi-Howrah
+irctc,od_pair_top,NDLS_BCT,0.13,S1_indian_railway_stations,Delhi-Mumbai
+irctc,od_pair_top,MAS_BCT,0.09,S1_indian_railway_stations,Chennai-Mumbai
+irctc,od_pair_top,other,0.30,S1_indian_railway_stations,Long tail
+irctc,split,real_anchored_count,14,viveka_internal,14 of 18 in-repo scenarios
+irctc,split,synthetic_plausible_count,4,viveka_internal,4 of 18 in-repo scenarios
+irctc,split,real_anchored_fraction,0.78,viveka_internal,Exceeds 0.60 target

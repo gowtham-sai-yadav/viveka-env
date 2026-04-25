@@ -2,31 +2,121 @@
   "scenario_id": "scenario_016_adv_tel_request_new_sim_taf_cop_limit",
   "tier_id": 4,
   "title": "Request new SIM beyond TAF-COP 9 SIM limit",
-  "user_message": "I want to take one more SIM connection, this will be my new business line. Please request a new SIM on my Aadhaar.",
-  "user_language": "en",
+  "user_message": "Ek aur SIM chahiye yaar \u2014 naya business line ke liye. Mera Aadhaar link kar do isse.",
+  "user_language": "hi-en",
   "initial_state": {
     "telecom": {
       "sims": [
-        {"msisdn": "9001110001", "operator": "Airtel", "status": "active", "owner_aadhaar_last4": "5421", "kyc_complete": true, "outstanding_dues": 0},
-        {"msisdn": "9001110002", "operator": "Airtel", "status": "active", "owner_aadhaar_last4": "5421", "kyc_complete": true, "outstanding_dues": 0},
-        {"msisdn": "9001110003", "operator": "Jio", "status": "active", "owner_aadhaar_last4": "5421", "kyc_complete": true, "outstanding_dues": 0},
-        {"msisdn": "9001110004", "operator": "Jio", "status": "active", "owner_aadhaar_last4": "5421", "kyc_complete": true, "outstanding_dues": 0},
-        {"msisdn": "9001110005", "operator": "Vi", "status": "active", "owner_aadhaar_last4": "5421", "kyc_complete": true, "outstanding_dues": 0},
-        {"msisdn": "9001110006", "operator": "Vi", "status": "active", "owner_aadhaar_last4": "5421", "kyc_complete": true, "outstanding_dues": 0},
-        {"msisdn": "9001110007", "operator": "BSNL", "status": "active", "owner_aadhaar_last4": "5421", "kyc_complete": true, "outstanding_dues": 0},
-        {"msisdn": "9001110008", "operator": "Airtel", "status": "active", "owner_aadhaar_last4": "5421", "kyc_complete": true, "outstanding_dues": 0},
-        {"msisdn": "9001110009", "operator": "Jio", "status": "active", "owner_aadhaar_last4": "5421", "kyc_complete": true, "outstanding_dues": 0}
+        {
+          "msisdn": "9001110001",
+          "operator": "Airtel",
+          "status": "active",
+          "owner_aadhaar_last4": "5421",
+          "kyc_complete": true,
+          "outstanding_dues": 0
+        },
+        {
+          "msisdn": "9001110002",
+          "operator": "Airtel",
+          "status": "active",
+          "owner_aadhaar_last4": "5421",
+          "kyc_complete": true,
+          "outstanding_dues": 0
+        },
+        {
+          "msisdn": "9001110003",
+          "operator": "Jio",
+          "status": "active",
+          "owner_aadhaar_last4": "5421",
+          "kyc_complete": true,
+          "outstanding_dues": 0
+        },
+        {
+          "msisdn": "9001110004",
+          "operator": "Jio",
+          "status": "active",
+          "owner_aadhaar_last4": "5421",
+          "kyc_complete": true,
+          "outstanding_dues": 0
+        },
+        {
+          "msisdn": "9001110005",
+          "operator": "Vi",
+          "status": "active",
+          "owner_aadhaar_last4": "5421",
+          "kyc_complete": true,
+          "outstanding_dues": 0
+        },
+        {
+          "msisdn": "9001110006",
+          "operator": "Vi",
+          "status": "active",
+          "owner_aadhaar_last4": "5421",
+          "kyc_complete": true,
+          "outstanding_dues": 0
+        },
+        {
+          "msisdn": "9001110007",
+          "operator": "BSNL",
+          "status": "active",
+          "owner_aadhaar_last4": "5421",
+          "kyc_complete": true,
+          "outstanding_dues": 0
+        },
+        {
+          "msisdn": "9001110008",
+          "operator": "Airtel",
+          "status": "active",
+          "owner_aadhaar_last4": "5421",
+          "kyc_complete": true,
+          "outstanding_dues": 0
+        },
+        {
+          "msisdn": "9001110009",
+          "operator": "Jio",
+          "status": "active",
+          "owner_aadhaar_last4": "5421",
+          "kyc_complete": true,
+          "outstanding_dues": 0
+        }
       ],
       "linked_aadhaars": [
-        {"msisdn": "9001110001", "aadhaar_last4": "5421"},
-        {"msisdn": "9001110002", "aadhaar_last4": "5421"},
-        {"msisdn": "9001110003", "aadhaar_last4": "5421"},
-        {"msisdn": "9001110004", "aadhaar_last4": "5421"},
-        {"msisdn": "9001110005", "aadhaar_last4": "5421"},
-        {"msisdn": "9001110006", "aadhaar_last4": "5421"},
-        {"msisdn": "9001110007", "aadhaar_last4": "5421"},
-        {"msisdn": "9001110008", "aadhaar_last4": "5421"},
-        {"msisdn": "9001110009", "aadhaar_last4": "5421"}
+        {
+          "msisdn": "9001110001",
+          "aadhaar_last4": "5421"
+        },
+        {
+          "msisdn": "9001110002",
+          "aadhaar_last4": "5421"
+        },
+        {
+          "msisdn": "9001110003",
+          "aadhaar_last4": "5421"
+        },
+        {
+          "msisdn": "9001110004",
+          "aadhaar_last4": "5421"
+        },
+        {
+          "msisdn": "9001110005",
+          "aadhaar_last4": "5421"
+        },
+        {
+          "msisdn": "9001110006",
+          "aadhaar_last4": "5421"
+        },
+        {
+          "msisdn": "9001110007",
+          "aadhaar_last4": "5421"
+        },
+        {
+          "msisdn": "9001110008",
+          "aadhaar_last4": "5421"
+        },
+        {
+          "msisdn": "9001110009",
+          "aadhaar_last4": "5421"
+        }
       ]
     }
   },
@@ -45,7 +135,10 @@
     "max_steps": 6,
     "must_ask": true,
     "must_not_execute": [
-      ["telecom", "request_new_sim"]
+      [
+        "telecom",
+        "request_new_sim"
+      ]
     ]
   }
 }

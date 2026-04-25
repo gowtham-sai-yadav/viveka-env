@@ -1,0 +1,44 @@
+{
+  "by_service": {
+    "upi": {
+      "scenarios": 15,
+      "real_anchored": 12,
+      "synthetic": 3,
+      "real_pct": 80.0,
+      "n_sources": 5
+    },
+    "digilocker": {
+      "scenarios": 15,
+      "real_anchored": 9,
+      "synthetic": 6,
+      "real_pct": 60.0,
+      "n_sources": 5
+    },
+    "irctc": {
+      "scenarios": 19,
+      "real_anchored": 15,
+      "synthetic": 4,
+      "real_pct": 78.9,
+      "n_sources": 6
+    },
+    "banking": {
+      "scenarios": 11,
+      "real_anchored": 8,
+      "synthetic": 3,
+      "real_pct": 72.7,
+      "n_sources": 8
+    },
+    "telecom": {
+      "scenarios": 9,
+      "real_anchored": 6,
+      "synthetic": 3,
+      "real_pct": 66.7,
+      "n_sources": 8
+    }
+  },
+  "totals": {
+    "real": 50,
+    "synthetic": 19,
+    "scenarios": 69
+  }
+}

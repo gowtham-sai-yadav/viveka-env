@@ -1,0 +1,36 @@
+service,distribution_id,bucket,value,unit,source_id,year,note
+telecom,operator_market_share,Reliance_Jio,40.4,percent,TRAI_PIR_Q2_2025,2025,wireless subscriber share Q2 2025
+telecom,operator_market_share,Bharti_Airtel,33.0,percent,TRAI_PIR_Q2_2025,2025,wireless subscriber share Q2 2025
+telecom,operator_market_share,Vi,17.9,percent,TRAI_PIR_Q2_2025,2025,wireless subscriber share Q2 2025
+telecom,operator_market_share,BSNL,8.0,percent,TRAI_PIR_Q2_2025,2025,wireless subscriber share Q2 2025
+telecom,operator_market_share,MTNL,0.7,percent,TRAI_PIR_Q2_2025,2025,wireless subscriber share Q2 2025
+telecom,subscriber_base,total_wireless_india,1051,millions,TRAI_PIR_Q2_2025,2025,active wireless subscribers
+telecom,mnp_volume,monthly_avg_requests,14.3,millions,TRAI_PIR_Q2_2025,2025,national MNP request rate
+telecom,mnp_volume,cumulative_since_launch,1070,millions,TRAI_PIR_Q2_2025,2025,cumulative MNP requests
+telecom,fraud_sim_disconnections,2023_to_2025,2.75,millions,DOT_SANCHAR_SAATHI_CEIR_2025,2025,fake KYC SIMs disconnected
+telecom,handsets_blocked,ceir_2023_to_2025,1.4,millions,DOT_SANCHAR_SAATHI_CEIR_2025,2025,lost stolen handsets blocked
+telecom,taf_cop_cap,max_active_sims_per_aadhaar,9,count,DOT_SANCHAR_SAATHI_CEIR_2025,2023,DoT cap effective Dec 2023
+telecom,astr_flagged,suspect_connections_2023_24,8.7,millions,DOT_SANCHAR_SAATHI_CEIR_2025,2024,AI-flagged suspect SIMs
+telecom,phishing_incidents,total_2024,204844,count,CERTIN_BULLETINS_Q4_2024_Q1_2025,2024,CERT-In reported phishing incidents
+telecom,sms_otp_fraud_share,q4_2024_financial_cyber,18.4,percent,CERTIN_BULLETINS_Q4_2024_Q1_2025,2024,share of financial-cyber complaints
+telecom,phish_takedown_hours,india_avg,41.2,hours,CERTIN_BULLETINS_Q4_2024_Q1_2025,2024,avg time-to-takedown
+telecom,ncrp_loss,jan_to_sep_2024_total,11333,crore_INR,I4C_NCRP_2024,2024,reported financial loss
+telecom,otp_sim_swap_share,ncrp_2024_cases,22.0,percent,I4C_NCRP_2024,2024,share of cyber-financial cases
+telecom,loss_per_otp_share,fy_2024_25_avg,47800,INR,I4C_NCRP_2024,2024,mean victim loss
+telecom,helpline_1930_calls,2024_total,3.1,millions,I4C_NCRP_2024,2024,1930 call volume
+telecom,phish_tld_share,xyz_tk_ml_cf_top_combined,73.0,percent,PHISHTANK_LIVE_2025,2025,share of non-.com phish on 5 cheap TLDs
+telecom,phish_url_lifetime,median_hours,31,hours,PHISHTANK_LIVE_2025,2025,median time before takedown
+telecom,phish_https_rate,q1_2025,84.0,percent,PHISHTANK_LIVE_2025,2025,share served over HTTPS
+telecom,smishing_lure,bank_impersonation,38.0,percent,SMISHING_1090_MIMICS_3500,2024,labeled smishing share
+telecom,smishing_lure,parcel_delivery,21.0,percent,SMISHING_1090_MIMICS_3500,2024,labeled smishing share
+telecom,smishing_lure,telecom_recharge_sim_block,14.0,percent,SMISHING_1090_MIMICS_3500,2024,labeled smishing share
+telecom,smishing_lure,job_lottery,12.0,percent,SMISHING_1090_MIMICS_3500,2024,labeled smishing share
+telecom,smishing_lure,electricity_utility,9.0,percent,SMISHING_1090_MIMICS_3500,2024,labeled smishing share
+telecom,smishing_lure,misc_other,6.0,percent,SMISHING_1090_MIMICS_3500,2024,labeled smishing share
+telecom,churn_rate,overall_dataset,26.5,percent,KAGGLE_TELCO_CHURN_IBM,2018,IBM telco dataset
+telecom,churn_rate,month_to_month_contract,42.7,percent,KAGGLE_TELCO_CHURN_IBM,2018,segment churn
+telecom,churn_rate,tenure_under_12mo,47.7,percent,KAGGLE_TELCO_CHURN_IBM,2018,segment churn
+telecom,anubis_infections,india_2024,47000,count,ANUBIS_PRODAFT_2024,2024,Indian Android infections
+telecom,otp_interception_rate,post_install,31.0,percent,ANUBIS_PRODAFT_2024,2024,success rate after install
+telecom,sms_permission_abuse,sample_share,94.0,percent,ANUBIS_PRODAFT_2024,2024,Anubis variants requesting SMS perms
+telecom,sideload_vector,whatsapp_telegram_apk,71.0,percent,ANUBIS_PRODAFT_2024,2024,infection vector share

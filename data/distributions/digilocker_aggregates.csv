@@ -1,0 +1,33 @@
+source_key,metric,value,unit,year,scope,notes
+digilocker_official_stats,cumulative_documents_issued,990,crore,2025-08,india,990+ crore documents per DigiLocker stats page
+digilocker_official_stats,cumulative_documents_issued,943.36,crore,2025-03,india,Mar 2025 reading
+digilocker_official_stats,cumulative_documents_issued,940,crore,2024-12,india,Dec 2024 reading
+digilocker_official_stats,registered_users,57,crore,2025-08,india,57+ crore registered users
+digilocker_official_stats,registered_users,51.52,crore,2025-03,india,Mar 2025 reading
+digilocker_official_stats,registered_users,43.49,crore,2024-12,india,Dec 2024 reading
+digilocker_official_stats,active_issuers,1936,count,2025-03,india,registered issuer organisations
+digilocker_official_stats,connected_requesters,2407,count,2025-03,india,requesters integrated
+digilocker_official_stats,document_issuance_cagr,26,percent,2022-2025,india,Mar 2022 to Mar 2025 CAGR
+uidai_annual_report_2024_25,aadhaar_auth_transactions_total,2707,crore,FY2024-25,india,UIDAI annual report
+uidai_annual_report_2024_25,aadhaar_auth_avg_daily,9.6,crore_per_day,FY2024-25,india,vs 8.0 crore prior FY
+uidai_annual_report_2024_25,aadhaar_auth_peak_daily,13.2,crore_per_day,FY2024-25,india,single-day peak
+uidai_annual_report_2024_25,ekyc_transactions_march,44.63,crore,2025-03,india,+6 percent YoY
+uidai_annual_report_2024_25,ekyc_transactions_cumulative,2356,crore,2025-03,india,since inception to Mar 2025
+uidai_annual_report_2024_25,ekyc_share_banking_nbfc,55,percent,FY2024-25,india,qualitative band 55-60 percent
+uidai_annual_report_2024_25,ekyc_share_telecom,17,percent,FY2024-25,india,qualitative band 15-20 percent
+uidai_annual_report_2024_25,ekyc_share_government,12,percent,FY2024-25,india,welfare and direct benefit transfer
+uidai_annual_report_2024_25,ekyc_share_others,16,percent,FY2024-25,india,balance bucket
+cert_in_2024_2025_bulletins,phishing_share_of_fintech_fraud,38,percent,2025,india,CERT-In 2025 bulletin
+cert_in_2024_2025_bulletins,kyc_aadhaar_lure_share,4,percent,2024-2025,india,share of all SMishing-tagged fraud
+cert_in_2024_2025_bulletins,gst_incometax_lure_share,3,percent,2024-2025,india,SMishing-tagged fraud
+cert_in_2024_2025_bulletins,synthetic_identity_growth,450,percent,2022-2025,india,NASSCOM-DSCI cited
+cert_in_2024_2025_bulletins,account_takeover_yoy_growth,310,percent,2024-2025,india,RBI Jun 2025 bulletin
+smishing_indian_sms_datasets,smishing_1090_sample_count,1090,count,2024,global,smishtank.com corpus
+smishing_indian_sms_datasets,bank_impersonation_share,38,percent,2024,india,Indian SMishing top category
+smishing_indian_sms_datasets,kyc_aadhaar_verify_lure_share,4,percent,2024,india,subset of bank or government lures
+smishing_indian_sms_datasets,gst_tax_lure_share,3,percent,2024,india,Indian SMishing
+smishing_indian_sms_datasets,bilingual_hinglish_sms_share,22,percent,2024,india,bilingual register prevalence
+phishtank_tld_distribution,non_dotcom_phish_share,73,percent,2024,global,collective non-.com TLDs share
+phishtank_tld_distribution,new_gtld_registration_share,11,percent,2024,global,baseline registrations
+phishtank_tld_distribution,new_gtld_cybercrime_share,37,percent,2023-2024,global,Sep 2023 to Aug 2024
+phishtank_tld_distribution,xyz_top_3_abused_gtld_rank,3,rank,2024,global,raw count basis
