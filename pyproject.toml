@@ -5,7 +5,11 @@ description = "Viveka — an OpenEnv RL environment that teaches LLM agents to p
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "openenv-core[core]>=0.2.1",
+    # Pin openenv-core to 0.2.2 — 0.2.3 wheel imports CallToolResult from a
+    # fastmcp path that doesn't exist in 3.2+ (PyPI release drift). 0.2.2
+    # works with fastmcp 3.0–3.1.
+    "openenv-core[core]==0.2.2",
+    "fastmcp>=3.0,<3.2",
     "fastapi>=0.100.0",
     "pydantic>=2.0",
     "uvicorn>=0.20.0",
