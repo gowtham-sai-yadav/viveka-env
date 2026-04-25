@@ -182,7 +182,12 @@ def _extract_first_json(text: str) -> dict[str, Any] | None:
 class FrozenQwenPolicy(Policy):
     name = "qwen_base"
 
-    def __init__(self, model_id: str = "Qwen/Qwen2-0.5B-Instruct", adapter_path: str | None = None) -> None:
+    def __init__(
+        self,
+        model_id: str = "Qwen/Qwen2-0.5B-Instruct",
+        adapter_path: str | None = None,
+        n_candidates: int = 1,
+    ) -> None:
         import json as _json
         from pathlib import Path as _Path
 
@@ -216,6 +221,11 @@ class FrozenQwenPolicy(Policy):
         if self._device == "cpu":
             self._model = self._model.to("cpu")
         self._model.eval()
+        # Best-of-N: generate N candidates with sampling diversity, pick the one
+        # that parses + has highest stated confidence. n=1 keeps greedy decoding.
+        self._n_candidates = max(1, int(n_candidates))
+        if self._n_candidates > 1:
+            self.name = f"{self.name}@best-of-{self._n_candidates}"
 
     def _user_prompt(self, obs: VivekaObservation) -> str:
         return (
@@ -238,23 +248,57 @@ class FrozenQwenPolicy(Policy):
         ]
         prompt = self._tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
         inputs = self._tok(prompt, return_tensors="pt").to(self._device)
-        with torch.no_grad():
-            out = self._model.generate(
-                **inputs,
-                max_new_tokens=256,
-                do_sample=False,
-                temperature=0.0,
-                pad_token_id=self._tok.eos_token_id,
-            )
-        text = self._tok.decode(out[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True)
 
-        data = _extract_first_json(text)
-        if data is None:
-            return _abstain("qwen: no JSON in output")
-        try:
-            return VivekaAction.model_validate(data)
-        except ValidationError as e:
-            return _abstain(f"qwen: schema invalid ({str(e)[:100]})")
+        with torch.no_grad():
+            if self._n_candidates > 1:
+                out = self._model.generate(
+                    **inputs,
+                    max_new_tokens=256,
+                    do_sample=True,
+                    temperature=0.7,
+                    top_p=0.9,
+                    num_return_sequences=self._n_candidates,
+                    pad_token_id=self._tok.eos_token_id,
+                )
+            else:
+                out = self._model.generate(
+                    **inputs,
+                    max_new_tokens=256,
+                    do_sample=False,
+                    temperature=0.0,
+                    pad_token_id=self._tok.eos_token_id,
+                )
+
+        prompt_len = inputs["input_ids"].shape[1]
+        decoded = [self._tok.decode(seq[prompt_len:], skip_special_tokens=True) for seq in out]
+
+        # Score each candidate: 0 = unparseable JSON, 1 = parses but schema-invalid,
+        # 2 = valid VivekaAction. Within score=2, prefer higher stated confidence.
+        best: tuple[int, float, VivekaAction | None, str] = (0, -1.0, None, "")
+        first_parse_error = ""
+        for text in decoded:
+            data = _extract_first_json(text)
+            if data is None:
+                if best[0] < 1:
+                    best = (0, -1.0, None, "no JSON")
+                continue
+            try:
+                action = VivekaAction.model_validate(data)
+            except ValidationError as e:
+                if not first_parse_error:
+                    first_parse_error = str(e)[:100]
+                if best[0] < 1:
+                    best = (1, -1.0, None, f"schema invalid ({str(e)[:100]})")
+                continue
+            score = (2, float(action.confidence), action, "")
+            if score > best:
+                best = score
+
+        if best[2] is not None:
+            return best[2]
+        if best[0] == 1:
+            return _abstain(f"qwen: {best[3]}")
+        return _abstain("qwen: no valid candidate" if self._n_candidates > 1 else "qwen: no JSON in output")
 
 
 # ─── ANGLE 3 — GPT-4o-mini ────────────────────────────────────────────────
@@ -782,6 +826,7 @@ def _build_policy(
     model: str | None = None,
     cost_cap: float = 2.0,
     adapter: str | None = None,
+    best_of_n: int = 1,
 ) -> Policy:
     if name == "random":
         return RandomPolicy()
@@ -791,6 +836,7 @@ def _build_policy(
         return FrozenQwenPolicy(
             model_id=model or "Qwen/Qwen2-0.5B-Instruct",
             adapter_path=adapter,
+            n_candidates=best_of_n,
         )
     if name == "gpt4o":
         return GPT4oMiniPolicy(cost_cap_usd=cost_cap, model=model or "gpt-4o-mini")
@@ -814,6 +860,9 @@ def main() -> None:
                    help="Pick N scenarios from EACH tier (stratified). Overrides --max-scenarios.")
     p.add_argument("--output-json", default="eval/baseline.json")
     p.add_argument("--cost-cap", type=float, default=2.0)
+    p.add_argument("--best-of-n", type=int, default=1,
+                   help="Generate N candidates per step (qwen policy only); pick the parseable "
+                        "highest-confidence one. n>1 enables sampling. Defaults to 1 (greedy).")
     p.add_argument("--verbose", "-v", action="store_true",
                    help="Print scenario + per-step actions + reward breakdown.")
     args = p.parse_args()
@@ -827,7 +876,8 @@ def main() -> None:
     bundle: dict[str, Any] = {}
     for pname in policies:
         env = VivekaEnvironment()
-        policy = _build_policy(pname, model=args.model, cost_cap=args.cost_cap, adapter=args.adapter)
+        policy = _build_policy(pname, model=args.model, cost_cap=args.cost_cap,
+                                adapter=args.adapter, best_of_n=args.best_of_n)
         label = policy.name
         rows: list[dict[str, Any]] = []
         for t, i in pairs:
