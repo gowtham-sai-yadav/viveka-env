@@ -434,6 +434,28 @@ def main() -> None:
         random_state=args.seed,
     )
 
+    # transformers 5.x removed PreTrainedModel.warnings_issued, but TRL 0.24's
+    # GRPOTrainer.__init__ still does `model.warnings_issued["estimate_tokens"] = True`.
+    # Walk the wrapper chain (PeftModel -> LoraModel -> Qwen2ForCausalLM) and
+    # ensure the attribute exists at every level so the proxy lookup succeeds.
+    _seen: set[int] = set()
+
+    def _patch_warnings_issued(m: Any) -> None:
+        if id(m) in _seen:
+            return
+        _seen.add(id(m))
+        if not hasattr(m, "warnings_issued"):
+            try:
+                m.warnings_issued = {}
+            except (AttributeError, RuntimeError):
+                pass
+        for attr in ("base_model", "model"):
+            sub = getattr(m, attr, None)
+            if sub is not None and sub is not m:
+                _patch_warnings_issued(sub)
+
+    _patch_warnings_issued(model)
+
     dataset = build_dataset(tier_mix, n=args.episodes, seed=args.seed)
 
     bf16 = is_bfloat16_supported()
