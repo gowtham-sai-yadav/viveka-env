@@ -82,10 +82,17 @@ def test_compare_policies_handles_unknown_scenario():
     assert "Error" in md or "not found" in md.lower()
 
 
-def test_compare_all_scenarios_returns_table_with_mean():
+def test_compare_all_scenarios_per_tier_breakdown_with_overall():
     md = _compare_all_scenarios()
     assert "Naive vs Heuristic" in md
-    assert "MEAN" in md
-    assert "scenarios" in md
-    # At minimum the existing T1 + T2 + T3 + T4 scenarios produce one row each.
+    assert "Overall" in md
+    # Per-tier headings present
+    assert "T1 easy" in md
+    assert "T2 medium" in md
+    assert "T3 hard" in md
+    assert "T4 adversarial" in md
+    # Per-tier mean rows present (e.g., "T1 easy mean")
+    assert "T1 easy mean" in md
+    assert "T2 medium mean" in md
+    # At minimum 10 scenario rows across all tiers.
     assert md.count("\n| `") >= 10

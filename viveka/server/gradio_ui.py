@@ -239,20 +239,24 @@ def _run_episode_silent(
     return obs, history
 
 
+_TIER_LABEL = {
+    "t1_easy": "T1 easy",
+    "t2_medium": "T2 medium",
+    "t3_hard": "T3 hard / Hinglish",
+    "t4_adversarial": "T4 adversarial",
+}
+
+
 def _compare_all_scenarios() -> str:
     options = _scenario_options()
     if not options:
         return "_No scenarios available._"
 
-    rows = [
-        "## 🆚 Naive vs Heuristic — full bench",
-        "",
-        "| Scenario | Naive | Heuristic | Δ |",
-        "|---|---|---|---|",
-    ]
-    naive_total = 0.0
-    heur_total = 0.0
-    n = 0
+    by_tier: dict[str, list[tuple[str, float, float, float]]] = {k: [] for k in _TIER_LABEL}
+    grand_naive = 0.0
+    grand_heur = 0.0
+    grand_n = 0
+
     for choice in options:
         try:
             tier_id, idx = _parse_scenario_choice(choice)
@@ -266,24 +270,46 @@ def _compare_all_scenarios() -> str:
             continue
         nr = naive_obs.reward if naive_obs.reward is not None else 0.0
         hr = heur_obs.reward if heur_obs.reward is not None else 0.0
-        delta = hr - nr
-        sign = "+" if delta > 0 else ""
-        rows.append(f"| `{choice}` | {nr:.3f} | {hr:.3f} | {sign}{delta:.3f} |")
-        naive_total += nr
-        heur_total += hr
-        n += 1
+        tier_dir = choice.split("/", 1)[0]
+        by_tier.setdefault(tier_dir, []).append((choice, nr, hr, hr - nr))
+        grand_naive += nr
+        grand_heur += hr
+        grand_n += 1
 
-    if n == 0:
+    if grand_n == 0:
         return "_No scenarios ran successfully._"
 
-    naive_mean = naive_total / n
-    heur_mean = heur_total / n
-    mean_delta = heur_mean - naive_mean
-    sign = "+" if mean_delta > 0 else ""
-    rows.append(
-        f"| **MEAN ({n} scenarios)** | **{naive_mean:.3f}** | **{heur_mean:.3f}** | **{sign}{mean_delta:.3f}** |"
+    out: list[str] = ["## 🆚 Naive vs Heuristic — full bench (per-tier breakdown)", ""]
+    for tier_dir, label in _TIER_LABEL.items():
+        rows_t = by_tier.get(tier_dir, [])
+        if not rows_t:
+            continue
+        nt = sum(r[1] for r in rows_t) / len(rows_t)
+        ht = sum(r[2] for r in rows_t) / len(rows_t)
+        dt = ht - nt
+        sign = "+" if dt > 0 else ""
+        out.append(f"### {label} ({len(rows_t)} scenarios)")
+        out.append("")
+        out.append("| Scenario | Naive | Heuristic | Δ |")
+        out.append("|---|---|---|---|")
+        for choice, nr, hr, delta in rows_t:
+            short = choice.split("/", 1)[1]
+            d_sign = "+" if delta > 0 else ""
+            out.append(f"| `{short}` | {nr:.3f} | {hr:.3f} | {d_sign}{delta:.3f} |")
+        out.append(f"| **{label} mean** | **{nt:.3f}** | **{ht:.3f}** | **{sign}{dt:.3f}** |")
+        out.append("")
+
+    grand_naive_mean = grand_naive / grand_n
+    grand_heur_mean = grand_heur / grand_n
+    grand_delta = grand_heur_mean - grand_naive_mean
+    grand_sign = "+" if grand_delta > 0 else ""
+    out.append("---")
+    out.append("")
+    out.append(
+        f"### Overall — {grand_n} scenarios · Naive `{grand_naive_mean:.3f}` · "
+        f"Heuristic `{grand_heur_mean:.3f}` · **Δ `{grand_sign}{grand_delta:.3f}`**"
     )
-    return "\n".join(rows)
+    return "\n".join(out)
 
 
 def _compare_policies(scenario_choice: str) -> str:
