@@ -12,6 +12,7 @@ dependencies = [
     "openai>=1.0",
     "gradio>=4.0",
     "scikit-learn>=1.7.2",
+    "matplotlib>=3.7",
 ]
 
 [project.optional-dependencies]
@@ -21,7 +22,6 @@ train = [
     "transformers>=4.40.0",
     "accelerate>=0.30.0",
     "datasets>=2.18.0",
-    "matplotlib>=3.7",
 ]
 
 [project.scripts]
