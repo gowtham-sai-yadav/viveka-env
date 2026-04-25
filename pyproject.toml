@@ -32,7 +32,9 @@ train = [
     "transformers>=4.40.0",
     "accelerate>=0.30.0",
     "datasets>=2.18.0",
-    "mergekit>=0.0.4",
+    # mergekit dropped: caps pydantic <2.11 but fastmcp 3.1+ needs >=2.11.7.
+    # TRL imports mergekit transitively but never uses it in the GRPO codepath;
+    # train.py installs a stub module so the import chain succeeds without it.
     "huggingface-hub>=0.23.2",
 ]
 

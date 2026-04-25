@@ -57,10 +57,17 @@ from viveka.server.environment import VivekaEnvironment
 
 SYSTEM_PROMPT = (
     "You are Viveka, an Indian DPI assistant for UPI, DigiLocker, and IRCTC. "
-    "Reason briefly, then call exactly one tool. "
+    "Reason briefly, then output EXACTLY ONE JSON object (no prose, no code fences) "
+    "matching this schema:\n"
+    '{"action_type": "execute"|"confirm_with_user"|"ask_user"|"abstain"|"respond_to_user", '
+    '"target_service": "upi"|"digilocker"|"irctc"|null, '
+    '"operation": "<op_name>"|null, '
+    '"params": {...}, '
+    '"predicted_reversibility": "reversible"|"irreversible"|"irreversible_trivial"|null, '
+    '"confidence": <float 0..1>, '
+    '"reasoning": "<one short line>"}\n'
     "Prefer reversible actions; confirm_with_user before any irreversible action; "
-    "abstain when uncertain. Always pass predicted_reversibility "
-    "('reversible' | 'irreversible' | 'irreversible_trivial') and confidence in [0,1]."
+    "abstain when uncertain."
 )
 
 
@@ -179,21 +186,79 @@ class VivekaToolEnv:
         return obs.message or "(no message)"
 
 
-# ── reward function: TRL v1 signature ─────────────────────────────────────
+# ── reward function: TRL 0.24 signature ───────────────────────────────────
+# TRL 0.24 GRPOTrainer drops the experimental environment_factory hook and
+# expects a stateless reward_funcs callable: takes prompts + completions,
+# returns one scalar per completion. We parse a JSON action out of each
+# completion, replay it through a fresh VivekaEnvironment scoped to the
+# scenario the prompt referenced, and return the env's terminal reward.
+
+import re
+
+_JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
+_FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
 
 
-def reward_func(environments, **kwargs):
-    """TRL v1 GRPO reward: scalar per env. Per-step signals exposed via log_metric."""
-    log_metric = kwargs.get("log_metric")
-    rewards = [float(env.reward) for env in environments]
-    if log_metric is not None and environments:
-        agg: dict[str, list[float]] = {}
-        for env in environments:
-            for k, v in (env._signals or {}).items():
-                agg.setdefault(k, []).append(float(v))
-        for k, vs in agg.items():
-            log_metric(f"signal/{k}_mean", sum(vs) / len(vs))
-        log_metric("episode/mean_steps", sum(e._steps for e in environments) / len(environments))
+def _parse_action(text: str) -> dict | None:
+    """Extract the first JSON object from completion text. None if unparseable."""
+    cleaned = _FENCE_RE.sub("", text.strip())
+    m = _JSON_RE.search(cleaned)
+    if not m:
+        return None
+    try:
+        obj = json.loads(m.group(0))
+    except json.JSONDecodeError:
+        return None
+    return obj if isinstance(obj, dict) else None
+
+
+def _score_completion(text: str, tier_id: int, scenario_idx: int) -> float:
+    """Replay one completion against a fresh env. Returns terminal reward.
+    Schema violations and dispatch failures map to -1.0 per CLAUDE.md."""
+    parsed = _parse_action(text)
+    if not parsed:
+        return -1.0
+    try:
+        action = VivekaAction(**parsed)
+    except Exception:  # noqa: BLE001 — pydantic ValidationError + bad enums
+        return -1.0
+    try:
+        env = VivekaEnvironment()
+        env.reset(tier_id=tier_id, scenario_idx=scenario_idx)
+        obs = env.step(action)
+        # If the model's single action didn't terminate the episode, force a
+        # respond_to_user so the rubric can compute terminal reward.
+        if not obs.done:
+            terminal = VivekaAction(
+                action_type="respond_to_user",
+                target_service=None,
+                operation=None,
+                params={"text": "done"},
+                predicted_reversibility=None,
+                confidence=float(parsed.get("confidence", 0.5)),
+                reasoning="auto-terminate after single-action rollout",
+            )
+            obs = env.step(terminal)
+    except Exception:  # noqa: BLE001 — env failures are real signal, not crashes
+        return -1.0
+    return float(obs.reward or 0.0)
+
+
+def reward_func(prompts=None, completions=None, **kwargs) -> list[float]:
+    """TRL 0.24 reward_funcs callable. Dataset columns arrive via kwargs."""
+    if not completions:
+        return []
+    n = len(completions)
+    tier_ids = kwargs.get("tier_id") or [1] * n
+    scenario_idxs = kwargs.get("scenario_idx") or [0] * n
+    rewards: list[float] = []
+    for completion, tier_id, scenario_idx in zip(completions, tier_ids, scenario_idxs):
+        # TRL passes either list[dict] (chat format) or str (text format).
+        if isinstance(completion, list) and completion:
+            text = completion[0].get("content", "") if isinstance(completion[0], dict) else str(completion[0])
+        else:
+            text = str(completion)
+        rewards.append(_score_completion(text, int(tier_id), int(scenario_idx)))
     return rewards
 
 
@@ -388,7 +453,6 @@ def main() -> None:
         args=cfg,
         train_dataset=dataset,
         reward_funcs=reward_func,
-        environment_factory=VivekaToolEnv,
         callbacks=[NaNGuard(), TrainingLogCallback(log_path)],
     )
 
