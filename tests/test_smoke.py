@@ -18,12 +18,19 @@ def test_registry_known_ops():
     assert lookup("irctc", "book_ticket") == "irreversible"
 
 
-def test_reset_no_scenarios_returns_empty_stub():
+def test_reset_loads_first_t1_scenario():
     env = VivekaEnvironment()
     obs = env.reset(tier_id=1, scenario_idx=0)
     assert obs.step == 0
+    assert obs.user_message
+    assert {"upi", "digilocker", "irctc"}.issubset(set(obs.available_services))
+
+
+def test_reset_falls_back_to_empty_stub_when_idx_out_of_range():
+    env = VivekaEnvironment()
+    obs = env.reset(tier_id=1, scenario_idx=999)
+    assert obs.step == 0
     assert obs.user_message.startswith("(no scenario loaded")
-    assert "upi" in obs.available_services
 
 
 def test_step_check_balance_reversible():

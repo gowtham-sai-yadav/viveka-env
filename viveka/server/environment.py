@@ -255,6 +255,28 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
     def _snapshot_services(self) -> dict[str, dict[str, Any]]:
         return {name: svc.state() for name, svc in self._services.items()}
 
+    def _check_expected_state(self) -> dict[str, Any]:
+        """Compare scenario's expected.post_state against current service snapshots."""
+        expected = self._scenario.get("expected", {}).get("post_state", {}) or {}
+        current = self._snapshot_services()
+        details: dict[str, Any] = {}
+        matched = True
+        for svc_name, svc_expected in expected.items():
+            svc_current = current.get(svc_name)
+            if svc_current is None:
+                details[svc_name] = {"_missing": True}
+                matched = False
+                continue
+            field_results: dict[str, bool] = {}
+            for field, exp_value in svc_expected.items():
+                cur_value = svc_current.get(field)
+                ok = _values_match(exp_value, cur_value)
+                field_results[field] = ok
+                if not ok:
+                    matched = False
+            details[svc_name] = field_results
+        return {"matched": matched, "details": details}
+
     def _compute_intermediate_reward(self) -> float:
         signals = compute_step_reward_signals(
             scenario=self._scenario,
@@ -315,6 +337,14 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
                 "reward_signals": signals,
             },
         )
+
+
+def _values_match(expected: Any, current: Any) -> bool:
+    if isinstance(expected, bool) or isinstance(current, bool):
+        return expected == current
+    if isinstance(expected, (int, float)) and isinstance(current, (int, float)):
+        return abs(float(expected) - float(current)) <= 0.01
+    return expected == current
 
 
 def _empty_scenario(tier_id: int, scenario_idx: int) -> dict[str, Any]:
