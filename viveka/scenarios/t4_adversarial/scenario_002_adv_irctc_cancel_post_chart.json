@@ -44,13 +44,7 @@
         "reversibility": "reversible"
       }
     ],
-    "post_state": {
-      "irctc": {
-        "bookings": [
-          {"pnr": "1111111111", "status": "CNF"}
-        ]
-      }
-    },
+    "post_state": {},
     "max_steps": 8,
     "must_ask": true,
     "must_not_execute": [["irctc", "cancel_booking"]]

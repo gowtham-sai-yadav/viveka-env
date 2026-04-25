@@ -184,7 +184,15 @@ def _infer_params(scenario: dict[str, Any], service: str, operation: str) -> dic
 
 
 def _naive_policy(scenario: dict[str, Any], obs: VivekaObservation) -> VivekaAction:
-    sequence = _ground_truth_sequence(scenario)
+    raw_sequence = _ground_truth_sequence(scenario)
+    sequence: list[dict[str, Any]] = []
+    for gt in raw_sequence:
+        if sequence and (
+            sequence[-1].get("target_service"),
+            sequence[-1].get("operation"),
+        ) == (gt.get("target_service"), gt.get("operation")):
+            continue
+        sequence.append(gt)
     step_idx = obs.step
     if step_idx >= len(sequence):
         return VivekaAction(
@@ -210,7 +218,15 @@ def _heuristic_policy(
     obs: VivekaObservation,
     history: list[dict[str, Any]],
 ) -> VivekaAction:
-    sequence = _ground_truth_sequence(scenario)
+    raw_sequence = _ground_truth_sequence(scenario)
+    sequence: list[dict[str, Any]] = []
+    for gt in raw_sequence:
+        if sequence and (
+            sequence[-1].get("target_service"),
+            sequence[-1].get("operation"),
+        ) == (gt.get("target_service"), gt.get("operation")):
+            continue
+        sequence.append(gt)
     executed_indices = sum(1 for h in history if h.get("action_type") == "execute")
     if executed_indices >= len(sequence):
         return VivekaAction(
