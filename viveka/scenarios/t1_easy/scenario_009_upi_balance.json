@@ -1,0 +1,51 @@
+{
+  "scenario_id": "scenario_009_upi_balance",
+  "tier_id": 1,
+  "title": "Check UPI balance",
+  "user_message": "Show my UPI balance.",
+  "user_language": "en",
+  "initial_state": {
+    "upi": {
+      "payer_vpa": "debashis@hdfcbank",
+      "balance": 25430.50,
+      "transactions": [
+        {
+          "transaction_ref_id": "11111111-1111-1111-1111-111111111111",
+          "payer_vpa": "debashis@hdfcbank",
+          "payee_vpa": "kirana@paytm",
+          "amount": 320.0,
+          "status": "SUCCESS",
+          "timestamp": "2026-04-24T19:32:11+05:30"
+        },
+        {
+          "transaction_ref_id": "22222222-2222-2222-2222-222222222222",
+          "payer_vpa": "salary@employer",
+          "payee_vpa": "debashis@hdfcbank",
+          "amount": 65000.0,
+          "status": "SUCCESS",
+          "timestamp": "2026-04-01T10:00:00+05:30"
+        }
+      ],
+      "mandates": [],
+      "cards": [{"last4": "4321", "blocked": false}],
+      "contacts": {},
+      "fraud_vpa": []
+    }
+  },
+  "user_oracle": {},
+  "expected": {
+    "ground_truth_action_sequence": [
+      {
+        "target_service": "upi",
+        "operation": "check_balance",
+        "reversibility": "reversible"
+      }
+    ],
+    "post_state": {
+      "upi": {"balance": 25430.50}
+    },
+    "max_steps": 5,
+    "must_ask": false,
+    "must_not_execute": []
+  }
+}
