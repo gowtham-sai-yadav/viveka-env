@@ -1,0 +1,187 @@
+{
+  "policy_name": "random",
+  "n_scenarios": 30,
+  "mean_reward": 0.1923,
+  "scenarios": [
+    {
+      "tier": 1,
+      "idx": 0,
+      "reward": 0.1977,
+      "length": 7
+    },
+    {
+      "tier": 2,
+      "idx": 1,
+      "reward": 0.334,
+      "length": 8
+    },
+    {
+      "tier": 3,
+      "idx": 2,
+      "reward": 0.2368,
+      "length": 3
+    },
+    {
+      "tier": 4,
+      "idx": 3,
+      "reward": 0.1608,
+      "length": 7
+    },
+    {
+      "tier": 1,
+      "idx": 4,
+      "reward": 0.2416,
+      "length": 7
+    },
+    {
+      "tier": 2,
+      "idx": 5,
+      "reward": 0.2535,
+      "length": 3
+    },
+    {
+      "tier": 3,
+      "idx": 6,
+      "reward": 0.2765,
+      "length": 3
+    },
+    {
+      "tier": 4,
+      "idx": 7,
+      "reward": 0.2814,
+      "length": 7
+    },
+    {
+      "tier": 1,
+      "idx": 8,
+      "reward": 0.18,
+      "length": 8
+    },
+    {
+      "tier": 2,
+      "idx": 9,
+      "reward": 0.2918,
+      "length": 7
+    },
+    {
+      "tier": 3,
+      "idx": 10,
+      "reward": 0.1937,
+      "length": 4
+    },
+    {
+      "tier": 4,
+      "idx": 11,
+      "reward": 0.1959,
+      "length": 8
+    },
+    {
+      "tier": 1,
+      "idx": 12,
+      "reward": 0.309,
+      "length": 8
+    },
+    {
+      "tier": 2,
+      "idx": 13,
+      "reward": 0.3421,
+      "length": 8
+    },
+    {
+      "tier": 3,
+      "idx": 14,
+      "reward": 0.1977,
+      "length": 5
+    },
+    {
+      "tier": 4,
+      "idx": 15,
+      "reward": 0.2978,
+      "length": 3
+    },
+    {
+      "tier": 1,
+      "idx": 16,
+      "reward": 0.2228,
+      "length": 8
+    },
+    {
+      "tier": 2,
+      "idx": 17,
+      "reward": 0.142,
+      "length": 3
+    },
+    {
+      "tier": 3,
+      "idx": 18,
+      "reward": 0.0629,
+      "length": 6
+    },
+    {
+      "tier": 4,
+      "idx": 19,
+      "reward": 0.2168,
+      "length": 5
+    },
+    {
+      "tier": 1,
+      "idx": 20,
+      "reward": 0.1199,
+      "length": 7
+    },
+    {
+      "tier": 2,
+      "idx": 21,
+      "reward": 0.0485,
+      "length": 4
+    },
+    {
+      "tier": 3,
+      "idx": 22,
+      "reward": 0.1611,
+      "length": 6
+    },
+    {
+      "tier": 4,
+      "idx": 23,
+      "reward": 0.1401,
+      "length": 8
+    },
+    {
+      "tier": 1,
+      "idx": 24,
+      "reward": 0.1607,
+      "length": 5
+    },
+    {
+      "tier": 2,
+      "idx": 25,
+      "reward": 0.1555,
+      "length": 6
+    },
+    {
+      "tier": 3,
+      "idx": 26,
+      "reward": 0.0129,
+      "length": 5
+    },
+    {
+      "tier": 4,
+      "idx": 27,
+      "reward": 0.0437,
+      "length": 7
+    },
+    {
+      "tier": 1,
+      "idx": 28,
+      "reward": 0.1911,
+      "length": 4
+    },
+    {
+      "tier": 2,
+      "idx": 29,
+      "reward": 0.1006,
+      "length": 3
+    }
+  ]
+}

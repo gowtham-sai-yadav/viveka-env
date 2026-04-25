@@ -351,6 +351,39 @@ class GPT4oMiniPolicy(Policy):
 # ─── episode runner ───────────────────────────────────────────────────────
 
 
+def _extract_trajectory(actions_taken: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Per-action records for downstream calibration / reliability analysis."""
+    from viveka.server.reversibility_registry import lookup
+
+    traj: list[dict[str, Any]] = []
+    for a in actions_taken:
+        record = {
+            "step": a.get("step"),
+            "action_type": a.get("action_type"),
+            "target_service": a.get("target_service"),
+            "operation": a.get("operation"),
+            "predicted_reversibility": a.get("predicted_reversibility"),
+            "confidence": a.get("confidence"),
+            "result_error_code": (a.get("result") or {}).get("error_code"),
+        }
+        pred = a.get("predicted_reversibility")
+        svc = a.get("target_service")
+        op = a.get("operation")
+        if pred is not None and svc is not None and op is not None:
+            try:
+                gt = lookup(svc, op)
+                record["ground_truth_reversibility"] = gt
+                record["correctness"] = 1 if pred == gt else 0
+            except KeyError:
+                record["ground_truth_reversibility"] = None
+                record["correctness"] = None
+        else:
+            record["ground_truth_reversibility"] = None
+            record["correctness"] = None
+        traj.append(record)
+    return traj
+
+
 def run_episode(env: VivekaEnvironment, policy: Policy, tier_id: int, scenario_idx: int) -> dict[str, Any]:
     policy.reset()
     obs = env.reset(tier_id=tier_id, scenario_idx=scenario_idx)
@@ -364,6 +397,7 @@ def run_episode(env: VivekaEnvironment, policy: Policy, tier_id: int, scenario_i
         length += 1
 
     components = (obs.metadata or {}).get("reward_signals", {}) if obs.metadata else {}
+    trajectory = _extract_trajectory(env._actions_taken)
     return {
         "scenario_id": (obs.metadata or {}).get("scenario_id", "unknown"),
         "tier_id": tier_id,
@@ -371,6 +405,7 @@ def run_episode(env: VivekaEnvironment, policy: Policy, tier_id: int, scenario_i
         "reward": float(obs.reward or 0.0),
         "components": components,
         "length": length,
+        "trajectory": trajectory,
     }
 
 

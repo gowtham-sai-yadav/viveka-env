@@ -344,6 +344,9 @@ def main() -> None:
         num_train_epochs=1,
     )
 
+    from viveka.server.training_log_callback import TrainingLogCallback
+
+    log_path = Path(args.output_dir) / "training_log.jsonl"
     trainer = GRPOTrainer(
         model=model,
         processing_class=tokenizer,
@@ -351,7 +354,7 @@ def main() -> None:
         train_dataset=dataset,
         reward_funcs=reward_func,
         environment_factory=VivekaToolEnv,
-        callbacks=[NaNGuard()],
+        callbacks=[NaNGuard(), TrainingLogCallback(log_path)],
     )
 
     print(
