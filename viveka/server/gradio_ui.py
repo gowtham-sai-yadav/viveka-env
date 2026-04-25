@@ -77,6 +77,112 @@ def _safe_registry_label(service: str | None, operation: str | None) -> str | No
         return None
 
 
+def _infer_params(scenario: dict[str, Any], service: str, operation: str) -> dict[str, Any]:
+    """Pick realistic params for the heuristic so operations actually succeed against the mock state.
+
+    Falls back to {} when initial_state lacks the entity. Naive policy intentionally
+    bypasses this — empty-params failures are the baseline.
+    """
+    initial = scenario.get("initial_state", {}) or {}
+
+    if service == "digilocker":
+        dgl = initial.get("digilocker", {}) or {}
+        docs = dgl.get("documents", []) or []
+        consents = dgl.get("consents", []) or []
+        first_doc_id = docs[0].get("doc_id") if docs else None
+        first_active_consent = next(
+            (c.get("consent_id") for c in consents if c.get("status") == "active"),
+            consents[0].get("consent_id") if consents else None,
+        )
+        if operation in {"view_document", "fetch_document", "delete_document"}:
+            return {"doc_id": first_doc_id} if first_doc_id else {}
+        if operation == "share_document":
+            return {"doc_id": first_doc_id, "recipient": "hdfc-bank"} if first_doc_id else {}
+        if operation == "issue_consent_token":
+            return (
+                {
+                    "doc_id": first_doc_id,
+                    "audience": "hdfc-bank",
+                    "scope": ["aadhaar.read"],
+                    "ttl_minutes": 30,
+                }
+                if first_doc_id
+                else {}
+            )
+        if operation == "revoke_consent":
+            return {"consent_id": first_active_consent} if first_active_consent else {}
+        return {}
+
+    if service == "irctc":
+        irctc = initial.get("irctc", {}) or {}
+        catalogue = irctc.get("catalogue", []) or []
+        bookings = irctc.get("bookings", []) or []
+        avail = irctc.get("availability", {}) or {}
+        first_train = catalogue[0] if catalogue else None
+        first_pnr = bookings[0].get("pnr") if bookings else None
+        if operation == "search_trains":
+            if first_train:
+                return {
+                    "from_station": first_train.get("from_station", ""),
+                    "to_station": first_train.get("to_station", ""),
+                }
+            return {}
+        if operation == "check_seat_availability":
+            if first_train:
+                tn = first_train.get("train_no", "")
+                cls = next(iter(avail.get(tn, {}).keys()), "SL")
+                return {"train_no": tn, "class": cls}
+            return {}
+        if operation in {"check_pnr", "cancel_booking"}:
+            return {"pnr": first_pnr} if first_pnr else {}
+        if operation == "modify_booking":
+            return {"pnr": first_pnr, "class": "3A"} if first_pnr else {}
+        if operation == "book_ticket":
+            if first_train:
+                tn = first_train.get("train_no", "")
+                cls_with_seats = next(
+                    (cls for cls, n in avail.get(tn, {}).items() if n > 0),
+                    "SL",
+                )
+                return {
+                    "train_no": tn,
+                    "class": cls_with_seats,
+                    "passengers": [{"name": "Demo Passenger", "age": 30, "gender": "M"}],
+                }
+            return {}
+        return {}
+
+    if service == "upi":
+        upi = initial.get("upi", {}) or {}
+        balance = float(upi.get("balance", 0))
+        contacts = upi.get("contacts", {}) or {}
+        mandates = upi.get("mandates", []) or []
+        cards = upi.get("cards", []) or []
+        txns = upi.get("transactions", []) or []
+        first_vpa = next(iter(contacts.values()), None)
+        first_pending_mandate = next(
+            (m.get("mandate_id") for m in mandates if m.get("status") == "pending"),
+            mandates[0].get("mandate_id") if mandates else None,
+        )
+        first_card_last4 = cards[0].get("last4") if cards else None
+        first_txn_id = txns[0].get("transaction_ref_id") if txns else None
+        if operation == "send_money":
+            if first_vpa:
+                return {"payee_vpa": first_vpa, "amount": min(500.0, max(balance / 4, 100.0))}
+            return {}
+        if operation in {"approve_mandate", "reject_mandate"}:
+            return {"mandate_id": first_pending_mandate} if first_pending_mandate else {}
+        if operation == "block_card":
+            return {"card_last4": first_card_last4} if first_card_last4 else {}
+        if operation == "raise_dispute":
+            return {"transaction_ref_id": first_txn_id} if first_txn_id else {}
+        if operation == "lookup_vpa":
+            return {"vpa": first_vpa} if first_vpa else {}
+        return {}
+
+    return {}
+
+
 def _naive_policy(scenario: dict[str, Any], obs: VivekaObservation) -> VivekaAction:
     sequence = _ground_truth_sequence(scenario)
     step_idx = obs.step
@@ -123,12 +229,13 @@ def _heuristic_policy(
         and h.get("operation") == operation
         for h in history
     )
+    params = _infer_params(scenario, service, operation)
     if label == "irreversible" and not already_confirmed:
         return VivekaAction(
             action_type="confirm_with_user",
             target_service=service,
             operation=operation,
-            params={},
+            params=params,
             predicted_reversibility="irreversible",
             confidence=0.9,
             reasoning="Heuristic: confirm before irreversible action.",
@@ -137,7 +244,7 @@ def _heuristic_policy(
         action_type="execute",
         target_service=service,
         operation=operation,
-        params={},
+        params=params,
         predicted_reversibility=label,
         confidence=0.9,
         reasoning="Heuristic: execute with registry-derived reversibility.",
