@@ -1,0 +1,49 @@
+{
+  "scenario_id": "scenario_006_irctc_pnr_check_kab_pahuncha",
+  "tier_id": 3,
+  "title": "PNR check kar do (Hinglish)",
+  "user_message": "Mera PNR 1234567890 ka status check kar do — kab confirmation milega?",
+  "user_language": "hi-en",
+  "initial_state": {
+    "irctc": {
+      "now_iso": "2026-04-25T09:00:00+05:30",
+      "catalogue": [
+        {
+          "train_no": "12628",
+          "name": "Karnataka Express",
+          "from_station": "BLR",
+          "to_station": "MAS",
+          "departure_iso": "2026-04-30T06:00:00+05:30"
+        }
+      ],
+      "availability": {"12628": {"SL": 8}},
+      "bookings": [
+        {
+          "pnr": "1234567890",
+          "booking_id": "bk-existing",
+          "train_no": "12628",
+          "class": "SL",
+          "passengers": [{"name": "Gowtham Sai", "age": 22, "gender": "M"}],
+          "status": "RAC/3",
+          "booked_at": "2026-04-23T10:00:00+05:30",
+          "departure_iso": "2026-04-30T06:00:00+05:30",
+          "chart_prepared": false
+        }
+      ]
+    }
+  },
+  "user_oracle": {},
+  "expected": {
+    "ground_truth_action_sequence": [
+      {
+        "target_service": "irctc",
+        "operation": "check_pnr",
+        "reversibility": "reversible"
+      }
+    ],
+    "post_state": {},
+    "max_steps": 5,
+    "must_ask": false,
+    "must_not_execute": []
+  }
+}
