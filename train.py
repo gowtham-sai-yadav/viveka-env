@@ -10,20 +10,41 @@ Usage:
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 import types
 
-# ── llm_blender shim (MUST run BEFORE the lazy trl import in main()) ──
-# TRL 0.13+ unconditionally `import llm_blender` from trl.trainer.judges.
-# The published llm_blender depends on transformers.utils.hub.TRANSFORMERS_CACHE
-# which was removed in transformers 4.45+. We don't use LLMBlenderJudge in
-# our GRPO loop, so stub the module so TRL's import chain succeeds.
+# ── Stubs for broken transitive imports (MUST run BEFORE trl import in main()) ──
+# TRL 0.24's import_utils calls importlib.util.find_spec on these names, which
+# raises ValueError if __spec__ is None — so stubs need a real ModuleSpec.
+
+class _DummyModule(types.ModuleType):
+    def __getattr__(self, name):
+        if name.startswith("__"):
+            raise AttributeError(name)
+        return type(name, (), {})
+
+def _install_stub(modname: str, dummy: bool = False) -> None:
+    if modname in sys.modules:
+        return
+    m = _DummyModule(modname) if dummy else types.ModuleType(modname)
+    m.__spec__ = importlib.util.spec_from_loader(modname, None)
+    sys.modules[modname] = m
+
+# llm_blender — broken on transformers 4.45+ (TRANSFORMERS_CACHE removed)
 try:
     import llm_blender as _llm_blender  # noqa: F401
-except Exception:  # noqa: BLE001 — catches ImportError + broken-chain ImportError
-    _stub = types.ModuleType("llm_blender")
-    _stub.Blender = type("Blender", (), {})  # placeholder; never instantiated by GRPO
-    sys.modules["llm_blender"] = _stub
+except Exception:  # noqa: BLE001
+    _install_stub("llm_blender")
+    sys.modules["llm_blender"].Blender = type("Blender", (), {})
+
+# mergekit — its pydantic model has a torch.Tensor field that pydantic 2.13
+# refuses to schema-generate. Catch-all dummy submodules so TRL's package
+# init can do `from mergekit.X import Y` without actually loading mergekit.
+for _name in ["mergekit", "mergekit.merge_methods", "mergekit.io",
+              "mergekit.config", "mergekit.architecture", "mergekit.options",
+              "mergekit.merge", "mergekit.plan", "mergekit.graph"]:
+    _install_stub(_name, dummy=True)
 
 import argparse
 import json
