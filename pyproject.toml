@@ -18,19 +18,16 @@ dependencies = [
 [project.optional-dependencies]
 train = [
     "torch>=2.0",
-    # Pin TRL to 0.12.x — 0.13+ adds an unconditional `import llm_blender`
-    # in trl.trainer.judges, and the available llm_blender is incompatible
-    # with transformers 4.45+ (removed TRANSFORMERS_CACHE). 0.12.x has
-    # GRPOConfig + GRPOTrainer without that import chain.
-    "trl>=0.12.0,<0.13.0",
+    # GRPOConfig + GRPOTrainer were added in TRL 0.13. Newer TRL transitively
+    # imports llm_blender (which is broken on transformers 4.45+) — train.py
+    # stubs that out at the top of the file before TRL's lazy import fires,
+    # so we can keep TRL at >=0.13 here.
+    "trl>=0.13.0",
     "transformers>=4.40.0",
     "accelerate>=0.30.0",
     "datasets>=2.18.0",
     "mergekit>=0.0.4",
-    # TRL 0.12 + transformers 4.40-4.44 require huggingface-hub <1.0;
-    # Kaggle's preinstalled huggingface-hub==1.12 breaks the import chain
-    # (`huggingface-hub>=0.23.2,<1.0 is required ... but found 1.12.0`).
-    "huggingface-hub>=0.23.2,<1.0",
+    "huggingface-hub>=0.23.2",
 ]
 
 [project.scripts]

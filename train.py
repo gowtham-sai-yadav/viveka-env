@@ -10,10 +10,24 @@ Usage:
 
 from __future__ import annotations
 
+import sys
+import types
+
+# ── llm_blender shim (MUST run BEFORE the lazy trl import in main()) ──
+# TRL 0.13+ unconditionally `import llm_blender` from trl.trainer.judges.
+# The published llm_blender depends on transformers.utils.hub.TRANSFORMERS_CACHE
+# which was removed in transformers 4.45+. We don't use LLMBlenderJudge in
+# our GRPO loop, so stub the module so TRL's import chain succeeds.
+try:
+    import llm_blender as _llm_blender  # noqa: F401
+except Exception:  # noqa: BLE001 — catches ImportError + broken-chain ImportError
+    _stub = types.ModuleType("llm_blender")
+    _stub.Blender = type("Blender", (), {})  # placeholder; never instantiated by GRPO
+    sys.modules["llm_blender"] = _stub
+
 import argparse
 import json
 import random
-import sys
 from pathlib import Path
 from typing import Any
 
