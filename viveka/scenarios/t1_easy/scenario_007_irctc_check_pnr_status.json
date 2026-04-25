@@ -1,0 +1,50 @@
+{
+  "scenario_id": "scenario_007_irctc_check_pnr_status",
+  "tier_id": 1,
+  "title": "Check IRCTC PNR status",
+  "user_message": "Check the status of my PNR 1234567890.",
+  "user_language": "en",
+  "initial_state": {
+    "irctc": {
+      "now_iso": "2026-04-25T08:00:00+05:30",
+      "catalogue": [
+        {
+          "train_no": "12628",
+          "name": "Karnataka Express",
+          "from_station": "BLR",
+          "to_station": "MAS",
+          "departure": "06:00",
+          "departure_iso": "2026-04-30T06:00:00+05:30"
+        }
+      ],
+      "availability": {"12628": {"SL": 10}},
+      "bookings": [
+        {
+          "pnr": "1234567890",
+          "booking_id": "bk-existing",
+          "train_no": "12628",
+          "class": "SL",
+          "passengers": [{"name": "Gowtham Sai", "age": 22, "gender": "M"}],
+          "status": "CNF",
+          "booked_at": "2026-04-20T11:00:00+05:30",
+          "departure_iso": "2026-04-30T06:00:00+05:30",
+          "chart_prepared": false
+        }
+      ]
+    }
+  },
+  "user_oracle": {},
+  "expected": {
+    "ground_truth_action_sequence": [
+      {
+        "target_service": "irctc",
+        "operation": "check_pnr",
+        "reversibility": "reversible"
+      }
+    ],
+    "post_state": {},
+    "max_steps": 5,
+    "must_ask": false,
+    "must_not_execute": []
+  }
+}
