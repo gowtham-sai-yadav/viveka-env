@@ -198,6 +198,14 @@ import re
 _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
 
+# VivekaAction has model_config = ConfigDict(extra="forbid"), so any extra
+# field the LLM emits ("thoughts", "explanation", etc.) raises ValidationError.
+# We strip parsed dicts down to known fields before constructing the action.
+_VIVEKA_ACTION_FIELDS = frozenset(
+    ["action_type", "target_service", "operation", "params",
+     "predicted_reversibility", "confidence", "reasoning"]
+)
+
 
 def _parse_action(text: str) -> dict | None:
     """Extract the first JSON object from completion text. None if unparseable."""
@@ -218,8 +226,9 @@ def _score_completion(text: str, tier_id: int, scenario_idx: int) -> float:
     parsed = _parse_action(text)
     if not parsed:
         return -1.0
+    filtered = {k: v for k, v in parsed.items() if k in _VIVEKA_ACTION_FIELDS}
     try:
-        action = VivekaAction(**parsed)
+        action = VivekaAction(**filtered)
     except Exception:  # noqa: BLE001 — pydantic ValidationError + bad enums
         return -1.0
     try:
@@ -278,13 +287,21 @@ def build_dataset(tier_mix: dict[int, float], n: int, seed: int = 0):
     """Construct a TRL-compatible Dataset of prompts. Imports lazy."""
     from datasets import Dataset
 
+    from viveka.server.scenario_loader import all_tier_dirs, list_scenarios
+
+    # Per-tier real scenario counts. Without this, randrange(0, 100) means
+    # ~85% of training samples hit the empty-stub fallback in env.reset() —
+    # zero learning signal. Bound to the actual count per tier instead.
+    tier_dirs = all_tier_dirs()
+    tier_counts = {tid: max(1, len(list_scenarios(d))) for tid, d in tier_dirs.items()}
+
     rng = random.Random(seed)
     tiers = list(tier_mix.keys())
     weights = [tier_mix[t] for t in tiers]
     rows: list[dict[str, Any]] = []
     for _ in range(n):
         tier = rng.choices(tiers, weights=weights, k=1)[0]
-        scenario_idx = rng.randrange(0, 100)
+        scenario_idx = rng.randrange(0, tier_counts.get(tier, 1))
         rows.append(
             {
                 "prompt": [
