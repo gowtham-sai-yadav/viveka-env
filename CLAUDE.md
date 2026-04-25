@@ -15,7 +15,7 @@ The agent should learn to ask the user instead of guessing on irreversible-or-un
 
 The substrate: **3 mocked Indian DPI services — UPI, DigiLocker, IRCTC.** ~60 scenarios across 4 difficulty tiers, English + Hinglish only.
 
-The training: TRL GRPO + Unsloth 4-bit QLoRA + Qwen2.5-1.5B-Instruct, 200–400 episodes, on HF Space compute credits given onsite.
+The training: TRL GRPO + Unsloth 4-bit QLoRA + **Qwen2-0.5B (primary)** with **Qwen2.5-1.5B-Instruct as a stretch override** (`--model` flag), 200–400 episodes, on HF Space compute credits given onsite. Keynote example slide uses Qwen2-0.5B and the per-person $30 HF credit ($60 total) on T4 makes 0.5B the safer default; only run 1.5B if 0.5B's reward curve lands clean and credits remain.
 
 The deliverable: HF Space with Gradio demo, two hero plots (reward curve + reliability diagram), README, baseline-vs-trained comparison, ≤90-second YouTube video.
 
@@ -29,7 +29,7 @@ The deliverable: HF Space with Gradio demo, two hero plots (reward curve + relia
 
 ## Why we're building this
 
-Meta PyTorch OpenEnv Hackathon Grand Finale, 25–26 April 2026, Bangalore. Team Diff Maker (Gowtham + Debashis). Targeting **1st prize ($7,500), no plan B**. 800+ Round 1 submissions filtered to finale. 11 judges. Rubric: Innovation 40%, Storytelling 30%, Reward Curves 20%, Pipeline 10%. Submission deadline **2026-04-26 20:00 IST**.
+Meta PyTorch OpenEnv Hackathon Grand Finale, 25–26 April 2026, Bangalore. Team Diff Maker (Gowtham + Debashis). Targeting **1st prize ($7,500), no plan B**. 800+ Round 1 submissions filtered to finale. 11 judges. Rubric: Innovation 40%, Storytelling 30%, Reward Curves 20%, Pipeline 10%. **Submission deadline 2026-04-26 17:00 IST** (announced at the keynote opening ceremony — supersedes prep docs that said 20:00). **Mentor rounds at 25 Apr 13:00, 25 Apr 17:00–17:30, 26 Apr 10:00–12:00 are mandatory checkpoints — Sanyam Bhutani is presenter AND judge.**
 
 Full strategy + 44-hour timeline lives in the sibling repo at `../oncall-env/docs/WINNING_PLAN.md` and `../oncall-env/docs/SUMMARY.md`. Read both before changing anything architectural.
 
@@ -172,7 +172,7 @@ Stretch differentiators (Phase 5 if MVP green):
 - ❌ Pivoting direction during the hackathon (we're locked on Viveka)
 - ❌ Using LLM-as-judge for the high-weight reward components
 - ❌ Using reserved tool names (`reset`/`step`/`state`/`close`)
-- ❌ Committing after 2026-04-26 20:00 IST
+- ❌ Committing after 2026-04-26 17:00 IST (deadline; submit at 16:00 with 1 hr buffer)
 - ❌ `--no-verify` on commits (don't skip pre-commit hooks)
 - ❌ Force-pushing to shared branches
 - ❌ Skipping the reversibility registry
@@ -194,16 +194,21 @@ Stretch differentiators (Phase 5 if MVP green):
 
 Surface these by writing a one-line note to main and pausing the workstream.
 
-## Checkpoints (mandatory phase boundaries)
+## Checkpoints (mandatory phase boundaries — POST-KEYNOTE TIMING)
 
 | Time (IST) | What must be green |
 |---|---|
-| 25 Apr 14:00 | End-to-end episode runs locally via client |
-| 25 Apr 20:00 | Full reward computed end-to-end. Per-step signals visible. 5-episode manual sanity check |
-| 26 Apr 02:00 | Training run launched. HF Space deployed. Gradio UI live. Baselines run |
-| 26 Apr 10:00 | First training run COMPLETE. Reward curve PNG. Reliability diagram PNG. Trained checkpoint exported |
-| 26 Apr 16:00 | All deliverables in repo. README finalized. Video recorded. HF Space final check |
-| 26 Apr 18:00 | SUBMITTED. Repo locked. No more commits |
+| 25 Apr 13:00 | **Mentor Round 1** — 60-sec pitch locked, draft in `docs/PITCH.md` |
+| 25 Apr 14:00 | End-to-end episode runs locally via client; 3 T1 scenarios; non-zero reward |
+| 25 Apr 16:00 | **Hello-world Viveka deployed to HF Space** (deploy debugging done early, not at 02:00) |
+| 25 Apr 17:00–17:30 | **Mentor Round 2** — demo first scenario running |
+| 25 Apr 20:00 | Full 6-component reward end-to-end; 30+ scenarios; README skeleton committed |
+| 26 Apr 02:00 | Training run launched (Qwen2-0.5B); Gradio UI live; baselines run |
+| 26 Apr 09:00 | First training run COMPLETE; reward curve PNG (with random/untrained baseline overlay) + reliability diagram PNG; trained checkpoint exported |
+| 26 Apr 10:00–12:00 | **Mentor Round 3** — show live reward curve + plots |
+| 26 Apr 14:00 | All deliverables in repo; README finalized; video recorded; HF Space final check |
+| 26 Apr 16:00 | **SUBMITTED** (1 hr buffer to deadline) |
+| 26 Apr 17:00 | **DEADLINE — repo URL locked, post-deadline commits ignored** |
 
 ## Communication style for any session output
 
