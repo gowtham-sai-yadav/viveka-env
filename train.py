@@ -534,7 +534,7 @@ def main() -> None:
     cfg = GRPOConfig(
         output_dir=args.output_dir,
         per_device_train_batch_size=1,
-        gradient_accumulation_steps=4,
+        gradient_accumulation_steps=16,    # must be divisible by num_generations
         num_generations=16,                # Sullivan 2025: was 4, bumped for PRM-effect
         temperature=1.0,                   # Sullivan 2025: was implicit ~0.7, force divergence
         max_prompt_length=512,
