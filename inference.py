@@ -35,8 +35,10 @@ class Policy(ABC):
     @abstractmethod
     def __call__(self, observation: VivekaObservation) -> VivekaAction: ...
 
-    def reset(self) -> None:  # noqa: B027 — optional hook, not abstract
-        pass
+    def reset(self) -> None:
+        # Reset any per-episode state (e.g. circuit breaker on policies that have one).
+        if hasattr(self, "_consecutive_errors"):
+            self._consecutive_errors = 0
 
 
 # ─── safe fallback action ─────────────────────────────────────────────────
@@ -291,6 +293,14 @@ class GPT4oMiniPolicy(Policy):
         self._cost = 0.0
         self._model_id = model
         self.name = model.replace("/", "_")
+        # gpt-5.x and o-series reasoning models use new param names + don't accept temperature.
+        m = model.lower()
+        self._is_newer_family = (
+            m.startswith("gpt-5") or m.startswith("o1") or m.startswith("o3") or m.startswith("o4")
+        )
+        # Circuit breaker — abort episode early if API repeatedly errors.
+        self._consecutive_errors = 0
+        self._max_consecutive_errors = 3
 
     def _user_prompt(self, obs: VivekaObservation) -> str:
         # Pull recent action history from the env if available (set by run_episode).
@@ -318,27 +328,46 @@ class GPT4oMiniPolicy(Policy):
     def __call__(self, observation: VivekaObservation) -> VivekaAction:
         if self._cost >= self._cost_cap:
             return _abstain(f"gpt4o: cost cap ${self._cost_cap} hit")
+        # Circuit breaker — once tripped, terminate episode cleanly via respond_to_user
+        # so we don't burn 30 steps on a permanently-broken API call.
+        if self._consecutive_errors >= self._max_consecutive_errors:
+            return VivekaAction(
+                action_type="respond_to_user",
+                params={"text": f"[circuit-breaker] {self._consecutive_errors} consecutive API errors; aborting."},
+                confidence=0.5,
+                reasoning="API repeatedly failing; ending episode early.",
+            )
+
+        # Build kwargs that work for both legacy (gpt-4o, gpt-4o-mini) and new (gpt-5.x, o-series) models.
+        api_kwargs: dict[str, Any] = {
+            "model": self._model_id,
+            "messages": [
+                {"role": "system", "content": _GPT_SYSTEM},
+                {"role": "user", "content": self._user_prompt(observation)},
+            ],
+            "response_format": {"type": "json_object"},
+        }
+        if self._is_newer_family:
+            # gpt-5.x / o-series: max_completion_tokens, no temperature override
+            api_kwargs["max_completion_tokens"] = 4000  # higher because reasoning models think first
+        else:
+            api_kwargs["max_tokens"] = 400
+            api_kwargs["temperature"] = 0.0
 
         for attempt in range(4):
             try:
-                resp = self._client.chat.completions.create(
-                    model=self._model_id,
-                    messages=[
-                        {"role": "system", "content": _GPT_SYSTEM},
-                        {"role": "user", "content": self._user_prompt(observation)},
-                    ],
-                    response_format={"type": "json_object"},
-                    max_tokens=400,
-                    temperature=0.0,
-                )
+                resp = self._client.chat.completions.create(**api_kwargs)
+                self._consecutive_errors = 0  # reset on success
                 break
             except Exception as e:  # noqa: BLE001
                 msg = str(e).lower()
                 if "rate" in msg or "429" in msg or "timeout" in msg:
                     time.sleep(2**attempt)
                     continue
-                return _abstain(f"gpt4o: api error {str(e)[:80]}")
+                self._consecutive_errors += 1
+                return _abstain(f"gpt4o: api error {str(e)[:120]}")
         else:
+            self._consecutive_errors += 1
             return _abstain("gpt4o: rate-limit retries exhausted")
 
         u = getattr(resp, "usage", None)

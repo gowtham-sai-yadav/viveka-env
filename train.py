@@ -459,11 +459,17 @@ def main() -> None:
     dataset = build_dataset(tier_mix, n=args.episodes, seed=args.seed)
 
     bf16 = is_bfloat16_supported()
+    # GRPO config tuned per Sullivan & Koller 2025 ("GRPO is Secretly a PRM"):
+    # num_generations >= 8 + temperature 1.0 unlocks branching diversity in
+    # group rollouts, which makes the group-relative advantage assign per-step
+    # credit (Bellman-style) without explicit step labels. We use G=16 here.
+    # 4× rollout cost is acceptable on T4/A10G for 200 episodes.
     cfg = GRPOConfig(
         output_dir=args.output_dir,
         per_device_train_batch_size=1,
         gradient_accumulation_steps=4,
-        num_generations=4,
+        num_generations=16,                # Sullivan 2025: was 4, bumped for PRM-effect
+        temperature=1.0,                   # Sullivan 2025: was implicit ~0.7, force divergence
         max_prompt_length=512,
         max_completion_length=768,
         learning_rate=5e-6,
