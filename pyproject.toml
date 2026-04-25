@@ -1,0 +1,51 @@
+[project]
+name = "viveka-env"
+version = "0.1.0"
+description = "Viveka — an OpenEnv RL environment that teaches LLM agents to predict reversibility before acting and emit calibrated confidence on India's Digital Public Infrastructure (UPI + DigiLocker + IRCTC)."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "openenv-core[core]>=0.2.1",
+    "fastapi>=0.100.0",
+    "pydantic>=2.0",
+    "uvicorn>=0.20.0",
+    "openai>=1.0",
+    "gradio>=4.0",
+]
+
+[project.optional-dependencies]
+train = [
+    "torch>=2.0",
+    "trl>=0.12.0",
+    "transformers>=4.40.0",
+    "accelerate>=0.30.0",
+    "datasets>=2.18.0",
+    "matplotlib>=3.7",
+]
+
+[project.scripts]
+viveka-server = "viveka.server.app:main"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["viveka*"]
+
+[tool.setuptools.package-data]
+"viveka.scenarios.t1_easy" = ["*.json"]
+"viveka.scenarios.t2_medium" = ["*.json"]
+"viveka.scenarios.t3_hard" = ["*.json"]
+"viveka.scenarios.t4_adversarial" = ["*.json"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

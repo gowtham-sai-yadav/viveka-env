@@ -1,0 +1,8 @@
+spec_version: 1
+name: viveka_env
+description: "Viveka — predict reversibility before acting; emit calibrated confidence; ask the user when uncertain. Mocked Indian DPI services (UPI + DigiLocker + IRCTC)."
+version: "0.1.0"
+type: space
+runtime: fastapi
+app: viveka.server.app:app
+port: 8000
