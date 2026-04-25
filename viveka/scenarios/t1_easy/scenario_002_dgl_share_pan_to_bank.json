@@ -8,12 +8,12 @@
     "digilocker": {
       "documents": [
         {
-          "doc_id": "PAN-5678",
+          "doc_id": "PAN-00E37FF",
           "doc_type": "pan",
           "issuer": "Income Tax Department",
           "issued_at": "2018-06-01T10:00:00+05:30",
           "data": {
-            "pan_number": "ABCDE1234F",
+            "pan_number": "MWQXR4173J",
             "name": "Gowtham Sai"
           }
         }

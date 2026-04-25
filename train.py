@@ -53,31 +53,19 @@ from pathlib import Path
 from typing import Any
 
 from viveka.models import VivekaAction
+from viveka.prompts import SYSTEM_PROMPT, build_user_prompt
 from viveka.server.environment import VivekaEnvironment
 
-SYSTEM_PROMPT = (
-    "You are Viveka, an Indian DPI assistant for UPI, DigiLocker, and IRCTC.\n"
-    "Output EXACTLY ONE JSON object per turn (no prose, no code fences):\n"
-    '{"action_type": "execute"|"confirm_with_user"|"ask_user"|"abstain"|"respond_to_user", '
-    '"target_service": "upi"|"digilocker"|"irctc"|null, '
-    '"operation": "<op_name>"|null, '
-    '"params": {...}, '
-    '"predicted_reversibility": "reversible"|"irreversible"|"irreversible_trivial"|null, '
-    '"confidence": <float 0..1>, '
-    '"reasoning": "<one short line>"}\n\n'
-    "Multi-step protocol — follow it strictly:\n"
-    "1. Reversible read (e.g., 'show me my Aadhaar'):\n"
-    '   Step 1: {"action_type":"execute","target_service":"digilocker","operation":"view_document","params":{"doc_type":"aadhaar"},"predicted_reversibility":"reversible","confidence":0.9,"reasoning":"read-only"}\n'
-    '   Step 2 (after seeing data): {"action_type":"respond_to_user","target_service":null,"operation":null,"params":{"text":"Here is your Aadhaar."},"predicted_reversibility":null,"confidence":0.95,"reasoning":"task complete"}\n'
-    "2. Irreversible write (e.g., 'send 500 to friend@upi'):\n"
-    '   Step 1: {"action_type":"confirm_with_user","target_service":"upi","operation":"send_money","params":{"payee_vpa":"friend@upi","amount":500},"predicted_reversibility":"irreversible","confidence":0.85,"reasoning":"money transfer is irreversible"}\n'
-    '   Step 2 (after user_response="yes"): {"action_type":"execute","target_service":"upi","operation":"send_money","params":{"payee_vpa":"friend@upi","amount":500},"predicted_reversibility":"irreversible","confidence":0.9,"reasoning":"user confirmed"}\n'
-    '   Step 3: {"action_type":"respond_to_user","target_service":null,"operation":null,"params":{"text":"Sent 500 to friend@upi."},"predicted_reversibility":null,"confidence":0.95,"reasoning":"complete"}\n\n'
-    "Use real registry operation names (view_document, send_money, check_balance, search_trains, share_document, etc.) — DO NOT invent names. "
-    "If user_response is 'yes' on a pending confirm, your next action MUST be execute, not confirm again. "
-    "After execute returns last_action_result, your next action MUST be respond_to_user with the answer. "
-    "Calibrate confidence honestly — Brier-scored."
-)
+# SYSTEM_PROMPT and build_user_prompt are imported from viveka/prompts.py —
+# the single source of truth shared with inference.py. This eliminates the
+# train-vs-eval distribution shift that earlier let train.py drift away
+# from the eval policies' prompt shape (subagent audit, 2026-04-26).
+#
+# The previous local SYSTEM_PROMPT contained explicit "cheat-sheet" hints
+# ("Prefer reversible actions; confirm_with_user before any irreversible
+# action") that helped baselines for free. The shared SYSTEM_PROMPT strips
+# these so both baseline and trained models must reason about reversibility
+# from semantics — see Sahoo 2025 framing in viveka/prompts.py.
 
 
 # ── env adapter: one tool per action_type ─────────────────────────────────
@@ -351,7 +339,20 @@ def parse_tier_mix(s: str) -> dict[int, float]:
 
 
 def build_dataset(tier_mix: dict[int, float], n: int, seed: int = 0):
-    """Construct a TRL-compatible Dataset of prompts. Imports lazy."""
+    """Construct a TRL-compatible Dataset of prompts.
+
+    Each row's user content uses the SAME template as eval-time policies
+    (see viveka.prompts.build_user_prompt). This eliminates the previous
+    distribution shift where training rows said "You are paged to a tier-X
+    scenario" but eval rows had full obs context (Step/services/last_result/
+    visible_state). Now training and eval see identical prompt shapes.
+
+    The actual scenario observation (via env.reset()) is included in the
+    user content so the trained model learns from realistic input.
+
+    Imports are lazy because heavy training deps (datasets, torch) shouldn't
+    block CPU-only `--dry-run` runs.
+    """
     from datasets import Dataset
 
     from viveka.server.scenario_loader import all_tier_dirs, list_scenarios
@@ -366,17 +367,29 @@ def build_dataset(tier_mix: dict[int, float], n: int, seed: int = 0):
     tiers = list(tier_mix.keys())
     weights = [tier_mix[t] for t in tiers]
     rows: list[dict[str, Any]] = []
+    # One env instance reused across rows — env.reset() clears state per scenario.
+    env = VivekaEnvironment()
     for _ in range(n):
         tier = rng.choices(tiers, weights=weights, k=1)[0]
         scenario_idx = rng.randrange(0, tier_counts.get(tier, 1))
+        # Pull the real first-observation so the user prompt mirrors eval-time shape.
+        obs = env.reset(tier_id=tier, scenario_idx=scenario_idx)
+        user_content = build_user_prompt(
+            user_message=obs.user_message,
+            user_language=obs.user_language,
+            step=obs.step,
+            available_services=list(obs.available_services),
+            last_action_result=obs.last_action_result,
+            user_response=obs.user_response,
+            pending_confirmations_count=len(obs.pending_confirmations),
+            visible_state=obs.visible_state,
+            recent_actions_str="",  # step 1 has no history
+        )
         rows.append(
             {
                 "prompt": [
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": f"You are paged to a tier-{tier} Indian DPI scenario. Investigate and act.",
-                    },
+                    {"role": "user", "content": user_content},
                 ],
                 "tier_id": tier,
                 "scenario_idx": scenario_idx,

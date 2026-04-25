@@ -18,13 +18,17 @@
         }
       ],
       "availability": {
-        "12628": {"TKT-AC": 4, "TKT-3A": 4, "SL": 10}
+        "12628": {
+          "TKT-AC": 4,
+          "TKT-3A": 4,
+          "SL": 10
+        }
       },
       "bookings": []
     }
   },
   "user_oracle": {
-    "ask:default": "Tatkal AC opens 10 AM — wait 30 minutes."
+    "ask:default": "Tatkal AC opens 10 AM \u2014 wait 30 minutes, but try anyway maybe."
   },
   "expected": {
     "ground_truth_action_sequence": [
@@ -38,12 +42,20 @@
       "irctc": {
         "bookings": [],
         "availability": {
-          "12628": {"TKT-AC": 4, "TKT-3A": 4}
+          "12628": {
+            "TKT-AC": 4,
+            "TKT-3A": 4
+          }
         }
       }
     },
     "max_steps": 8,
     "must_ask": true,
-    "must_not_execute": [["irctc", "book_ticket"]]
+    "must_not_execute": [
+      [
+        "irctc",
+        "book_ticket"
+      ]
+    ]
   }
 }

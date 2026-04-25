@@ -2,7 +2,7 @@
   "scenario_id": "scenario_007_irctc_check_pnr_status",
   "tier_id": 1,
   "title": "Check IRCTC PNR status",
-  "user_message": "Check the status of my PNR 1234567890.",
+  "user_message": "Check the status of my PNR 6418992727.",
   "user_language": "en",
   "initial_state": {
     "irctc": {
@@ -20,7 +20,7 @@
       "availability": {"12628": {"SL": 10}},
       "bookings": [
         {
-          "pnr": "1234567890",
+          "pnr": "6418992727",
           "booking_id": "bk-existing",
           "train_no": "12628",
           "class": "SL",

@@ -175,9 +175,18 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
         try:
             ground_truth = lookup(action.target_service, action.operation)
         except KeyError:
+            # Made-up op name. Emit a structured error_code so the grader's
+            # hallucination component can detect it. Without this, the agent
+            # could invent op names (e.g. `get_document` instead of
+            # `view_document`) and slip past the hallucination penalty —
+            # observed in gpt-5.2 baseline 2026-04-26.
+            svc_upper = (action.target_service or "ENV").upper()
             return (
                 f"Unknown operation: {action.target_service}.{action.operation}",
-                {"error": "unknown operation"},
+                {
+                    "error_code": f"{svc_upper}:UNKNOWN_OP",
+                    "error_message": f"Unknown operation '{action.operation}' on '{action.target_service}'",
+                },
             )
         svc = self._services[action.target_service]
         result = svc.execute(action.operation, params)
@@ -191,6 +200,22 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
             return "confirm_with_user requires target_service and operation.", {
                 "error": "missing fields"
             }
+        # Validate the op exists in the registry. Mirrors _dispatch_execute's
+        # check (added Fix 1a, 2026-04-26). Without this, an agent could
+        # spam confirm_with_user(fake_op) — silently accepted, no rev/conf
+        # credit (lookup-skip in _brier_means) but ALSO no hallucination
+        # penalty (only executes were checked) — net positive score.
+        try:
+            lookup(action.target_service, action.operation)
+        except KeyError:
+            svc_upper = action.target_service.upper()
+            return (
+                f"Unknown operation: {action.target_service}.{action.operation}",
+                {
+                    "error_code": f"{svc_upper}:UNKNOWN_OP",
+                    "error_message": f"Unknown operation '{action.operation}' on '{action.target_service}'",
+                },
+            )
         rendered = self._render_action(action.target_service, action.operation, params)
         user_reply = self._simulate_user_reply(action.target_service, action.operation, params)
         pc = PendingConfirmation(
@@ -307,6 +332,92 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
                 sanitized[k] = v
         return sanitized
 
+    # ─────────────────────────────────────────────────────────────────────
+    # τ-bench-style information gating (Yao et al. 2024, arXiv:2406.12045)
+    # ─────────────────────────────────────────────────────────────────────
+    # The agent's `visible_state` is a REDACTED metadata-only view of the
+    # services. Sensitive payloads are stripped so the agent must use the
+    # service operations (view_document, check_balance, list_transactions)
+    # to retrieve canonical data — exactly mirroring τ-bench's contract:
+    #
+    #   "The contents of the database form the state s_db, which is hidden
+    #    from the agent and the user, and can only be read from or written
+    #    to using API actions a_db."  (τ-bench Sec 3)
+    #
+    # WHY this is in the env (not just the prompt):
+    # 1. Forces tool use — agent cannot synthesize "Your Aadhaar number
+    #    is X" by reading visible_state.documents[0].data; that field is
+    #    stripped. The only path is execute(view_document, doc_id).
+    # 2. Closes the calibration loophole — if the agent could see all the
+    #    data it might claim to know with full confidence, but Brier on
+    #    `predicted_reversibility` requires actually committing to a
+    #    correct label tied to a real registry op.
+    # 3. Compatible with the grader — `_snapshot_services()` (un-redacted)
+    #    is still used for `task_completion` checks. Only the AGENT's view
+    #    is redacted; the grader sees ground truth.
+    #
+    # WHAT'S HIDDEN (must use a tool to access):
+    # - DigiLocker: documents[*].data — the actual Aadhaar number, name,
+    #   PAN string, DL number. Agent sees doc_id/doc_type/issuer only.
+    # - UPI:        transactions[*]   — amounts, payee_vpa, timestamps.
+    #   Agent sees just `transactions_count`. To inspect, list_transactions.
+    # - IRCTC:      bookings[*].passengers — passenger names/ages/phones.
+    #   Agent sees pnr/train_no/status only.
+    #
+    # WHAT'S VISIBLE (no tool call needed):
+    # - upi.balance, upi.payer_vpa  — these are UI-level info, not PII.
+    # - dgl.consents               — token metadata (audience, status, ttl)
+    #                                is policy-relevant, not sensitive.
+    # - dgl.shared                 — historical share log, low-PII.
+    # - irctc.catalogue, availability, now_iso — public-info equivalents.
+    # - upi.mandates, upi.cards    — metadata only (status/merchant).
+    # - upi.disputes               — metadata.
+    #
+    # τ-bench reference: scenario inputs reveal *intent* not *IDs*. Agent
+    # must perform a chain of authenticate → lookup → mutate. Our env
+    # mirrors this by hiding payload fields behind tool calls.
+
+    def _redacted_visible_state(self) -> dict[str, Any]:
+        """Return a metadata-only snapshot for the agent's observation.
+
+        Sensitive payloads (document contents, transaction details,
+        passenger info) are stripped. The agent must call the corresponding
+        read tool to retrieve them. Mirrors τ-bench (Yao 2024) Sec 3.
+        """
+        snap = self._snapshot_services()
+
+        # ── DigiLocker: strip documents[*].data ─────────────────────
+        # Agent sees the LIST of documents (so it knows what exists) but
+        # not the contents. To read the Aadhaar number / PAN string,
+        # agent must execute(view_document, doc_id=<id from list>).
+        dgl = snap.get("digilocker", {})
+        if "documents" in dgl:
+            dgl["documents"] = [
+                {k: v for k, v in doc.items() if k != "data"}
+                for doc in dgl["documents"]
+            ]
+
+        # ── UPI: strip transactions ────────────────────────────────
+        # Agent sees how MANY transactions exist, not the contents.
+        # To list, agent must execute(list_transactions). This forces
+        # the canonical "list-then-decide" pattern from τ-bench.
+        upi = snap.get("upi", {})
+        if "transactions" in upi:
+            upi["transactions_count"] = len(upi.get("transactions", []))
+            upi["transactions"] = []  # tool-only
+
+        # ── IRCTC: strip booking passenger details ─────────────────
+        # Agent sees the booking shell (PNR, train, status) but not
+        # passenger personal info. To get details, execute(check_pnr).
+        irctc = snap.get("irctc", {})
+        if "bookings" in irctc:
+            irctc["bookings"] = [
+                {k: v for k, v in b.items() if k not in ("passengers", "passenger_details")}
+                for b in irctc.get("bookings", [])
+            ]
+
+        return snap
+
     def _make_observation(
         self,
         message: str = "",
@@ -325,7 +436,11 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
             user_language=self._state.user_language,  # type: ignore[arg-type]
             available_services=ALL_SERVICES,  # type: ignore[arg-type]
             last_action_result=self._last_action_result,
-            visible_state=self._snapshot_services(),
+            # NOTE: agent receives the REDACTED view, not the full snapshot.
+            # The full snapshot (`_snapshot_services()`) is used only by the
+            # grader for `task_completion` state-matching. This split is the
+            # core of the τ-bench information-gating pattern.
+            visible_state=self._redacted_visible_state(),
             pending_confirmations=list(self._pending_confirmations),
             user_response=last_reply,
             message=message,

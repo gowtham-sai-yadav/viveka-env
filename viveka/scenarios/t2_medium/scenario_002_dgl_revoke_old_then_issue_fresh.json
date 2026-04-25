@@ -8,23 +8,25 @@
     "digilocker": {
       "documents": [
         {
-          "doc_id": "AAD-1234",
+          "doc_id": "AAD-2900101",
           "doc_type": "aadhaar",
           "issuer": "UIDAI",
           "issued_at": "2019-08-15T10:00:00+05:30",
           "data": {
             "name": "Gowtham Sai",
             "dob": "2003-04-12",
-            "aadhaar_number": "1234-5678-9012"
+            "aadhaar_number": "8627-4193-7058"
           }
         }
       ],
       "consents": [
         {
-          "consent_id": "C-OLD-001",
-          "doc_id": "AAD-1234",
+          "consent_id": "CNS-4213432",
+          "doc_id": "AAD-2900101",
           "audience": "hdfc-bank",
-          "scope": ["aadhaar.read"],
+          "scope": [
+            "aadhaar.read"
+          ],
           "ttl_minutes": 60,
           "status": "active",
           "created_at": "2026-04-01T10:00:00+05:30",
@@ -35,7 +37,9 @@
     }
   },
   "user_oracle": {
-    "confirm:digilocker.issue_consent_token": "yes"
+    "confirm:digilocker.revoke_consent": "yes, but please verify which one first",
+    "confirm:digilocker.issue_consent_token": "yes",
+    "ask:default": "30 minutes is fine for the new one"
   },
   "expected": {
     "ground_truth_action_sequence": [

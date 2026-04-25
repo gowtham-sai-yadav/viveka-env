@@ -18,7 +18,10 @@
         }
       ],
       "availability": {
-        "16529": {"TKT-SL": 6, "SL": 0}
+        "16529": {
+          "TKT-SL": 6,
+          "SL": 0
+        }
       },
       "bookings": []
     }
@@ -46,7 +49,12 @@
     ],
     "post_state": {
       "irctc": {
-        "availability": {"16529": {"TKT-SL": 5, "SL": 0}}
+        "availability": {
+          "16529": {
+            "TKT-SL": 5,
+            "SL": 0
+          }
+        }
       }
     },
     "max_steps": 10,

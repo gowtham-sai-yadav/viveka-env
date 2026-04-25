@@ -2,7 +2,7 @@
   "scenario_id": "scenario_008_irctc_cancel_booking_with_refund",
   "tier_id": 1,
   "title": "Cancel IRCTC booking well before departure (full refund window)",
-  "user_message": "Cancel my Karnataka Express booking with PNR 1234567890 — I won't be travelling on the 30th.",
+  "user_message": "Cancel my Karnataka Express booking with PNR 4143026614 — I won't be travelling on the 30th.",
   "user_language": "en",
   "initial_state": {
     "irctc": {
@@ -20,7 +20,7 @@
       "availability": {"12628": {"SL": 0}},
       "bookings": [
         {
-          "pnr": "1234567890",
+          "pnr": "4143026614",
           "booking_id": "bk-existing",
           "train_no": "12628",
           "class": "SL",

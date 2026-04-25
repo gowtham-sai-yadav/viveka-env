@@ -17,12 +17,19 @@
           "departure_iso": "2026-04-26T06:00:00+05:30"
         }
       ],
-      "availability": {"12628": {"2A": 0, "3A": 4, "SL": 8}},
+      "availability": {
+        "12628": {
+          "2A": 0,
+          "3A": 4,
+          "SL": 8
+        }
+      },
       "bookings": []
     }
   },
   "user_oracle": {
-    "confirm:irctc.book_ticket": "yes"
+    "confirm:irctc.book_ticket": "wait \u2014 only book if 2A is available, otherwise show me sleeper options first",
+    "ask:default": "two adult passengers; date is tomorrow"
   },
   "expected": {
     "ground_truth_action_sequence": [
@@ -54,7 +61,13 @@
     ],
     "post_state": {
       "irctc": {
-        "availability": {"12628": {"2A": 0, "3A": 4, "SL": 7}}
+        "availability": {
+          "12628": {
+            "2A": 0,
+            "3A": 4,
+            "SL": 7
+          }
+        }
       }
     },
     "max_steps": 12,

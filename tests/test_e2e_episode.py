@@ -20,19 +20,23 @@ def test_e2e_simple_reversible_view_aadhaar():
     obs = env.reset(tier_id=1, scenario_idx=idx)
 
     assert obs.user_message and "Aadhaar" in obs.user_message
-    assert obs.visible_state["digilocker"]["documents"][0]["doc_id"] == "AAD-1234"
+    # Read the doc_id dynamically — scenarios were hardened with randomized IDs
+    # per τ-bench (Yao 2024) so the agent must discover them via list_documents,
+    # not hardcode "AAD-1234".
+    aadhaar_id = obs.visible_state["digilocker"]["documents"][0]["doc_id"]
+    assert aadhaar_id.startswith("AAD-"), f"expected aadhaar doc_id prefix, got {aadhaar_id}"
 
     obs = env.step(VivekaAction(
         action_type="execute",
         target_service="digilocker",
         operation="view_document",
-        params={"doc_id": "AAD-1234"},
+        params={"doc_id": aadhaar_id},
         predicted_reversibility="reversible",
         confidence=0.95,
         reasoning="Read-only lookup, no state change.",
     ))
     assert obs.last_action_result is not None
-    assert obs.last_action_result.get("doc_id") == "AAD-1234"
+    assert obs.last_action_result.get("doc_id") == aadhaar_id
     assert obs.last_action_result.get("ground_truth_reversibility") == "reversible"
     assert obs.visible_state["digilocker"]["consents"] == []
     assert obs.visible_state["digilocker"]["shared"] == []

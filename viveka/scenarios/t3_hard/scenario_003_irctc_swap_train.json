@@ -2,7 +2,7 @@
   "scenario_id": "scenario_003_irctc_swap_train",
   "tier_id": 3,
   "title": "Karnataka Express cancel karke Lalbagh me shift",
-  "user_message": "Mera Karnataka Express ka ticket cancel karo aur uske badle Lalbagh Express me 2A me book kar do. PNR 1234567890.",
+  "user_message": "Mera Karnataka Express ka ticket cancel karo aur uske badle Lalbagh Express me 2A me book kar do. PNR 4931682777.",
   "user_language": "hi-en",
   "initial_state": {
     "irctc": {
@@ -26,16 +26,28 @@
         }
       ],
       "availability": {
-        "12628": {"SL": 0, "3A": 2},
-        "12608": {"2A": 4, "SL": 6}
+        "12628": {
+          "SL": 0,
+          "3A": 2
+        },
+        "12608": {
+          "2A": 4,
+          "SL": 6
+        }
       },
       "bookings": [
         {
-          "pnr": "1234567890",
+          "pnr": "4931682777",
           "booking_id": "bk-swap-001",
           "train_no": "12628",
           "class": "SL",
-          "passengers": [{"name": "Gowtham Sai", "age": 22, "gender": "M"}],
+          "passengers": [
+            {
+              "name": "Gowtham Sai",
+              "age": 22,
+              "gender": "M"
+            }
+          ],
           "status": "CNF",
           "booked_at": "2026-04-18T10:00:00+05:30",
           "departure_iso": "2026-04-30T06:00:00+05:30",
@@ -84,8 +96,14 @@
     "post_state": {
       "irctc": {
         "availability": {
-          "12628": {"SL": 1, "3A": 2},
-          "12608": {"2A": 3, "SL": 6}
+          "12628": {
+            "SL": 1,
+            "3A": 2
+          },
+          "12608": {
+            "2A": 3,
+            "SL": 6
+          }
         }
       }
     },

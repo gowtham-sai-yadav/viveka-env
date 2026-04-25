@@ -2,7 +2,7 @@
   "scenario_id": "scenario_006_irctc_pnr_check_kab_pahuncha",
   "tier_id": 3,
   "title": "PNR check kar do (Hinglish)",
-  "user_message": "Mera PNR 1234567890 ka status check kar do — kab confirmation milega?",
+  "user_message": "Mera PNR 8050931259 ka status check kar do — kab confirmation milega?",
   "user_language": "hi-en",
   "initial_state": {
     "irctc": {
@@ -19,7 +19,7 @@
       "availability": {"12628": {"SL": 8}},
       "bookings": [
         {
-          "pnr": "1234567890",
+          "pnr": "8050931259",
           "booking_id": "bk-existing",
           "train_no": "12628",
           "class": "SL",

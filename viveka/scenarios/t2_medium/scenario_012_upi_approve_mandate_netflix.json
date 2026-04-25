@@ -11,7 +11,7 @@
             "transactions": [],
             "mandates": [
                 {
-                    "mandate_id": "M001",
+                    "mandate_id": "MND-29F6AB8",
                     "merchant": "Netflix",
                     "amount": 649.00,
                     "status": "pending",
