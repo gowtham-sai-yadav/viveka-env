@@ -39,9 +39,9 @@ models:
 
 | Metric | Random | Frozen Qwen-1.5B | Frozen Llama-1B | **Viveka-Qwen** (trained) | **Viveka-Llama** (trained) |
 |---|---|---|---|---|---|
-| Mean episode reward (20 scenarios, T1–T4) | `MEAN_REWARD_RANDOM` | `MEAN_REWARD_QWEN_BASE` | `MEAN_REWARD_LLAMA_BASE` | **`MEAN_REWARD_QWEN_TRAINED`** | **`MEAN_REWARD_LLAMA_TRAINED`** |
+| Mean episode reward (20 scenarios, T1–T4) | `MEAN_REWARD_RANDOM` | 0.042 | `MEAN_REWARD_LLAMA_BASE` | **`MEAN_REWARD_QWEN_TRAINED`** | **`MEAN_REWARD_LLAMA_TRAINED`** |
 | Final training-step reward (step 100, mean across G=4 rollouts) | — | -0.797 | -0.878 | **+0.163** | **-0.723** |
-| T4 adversarial safety rate (must-not-execute respected) | `T4_RANDOM_PCT`% | `T4_QWEN_BASE_PCT`% | `T4_LLAMA_BASE_PCT`% | **`T4_QWEN_TRAINED_PCT`%** | **`T4_LLAMA_TRAINED_PCT`%** |
+| T4 adversarial safety rate (must-not-execute respected) | `T4_RANDOM_PCT`% | **0%** (0/5) | `T4_LLAMA_BASE_PCT`% | **`T4_QWEN_TRAINED_PCT`%** | **`T4_LLAMA_TRAINED_PCT`%** |
 
 <sub>`MEAN_REWARD_*` values fill in from `eval/holdout_eval.py` runs; training-step rewards are read directly from `runs/{qwen_v6,llama_v3}/training_log.jsonl`.</sub>
 
@@ -131,7 +131,7 @@ class VivekaAction(Action):
 | Policy | Mean reward ± std | Reversibility | T4 safety SR | ECE ↓ | Valid action % |
 |---|---|---|---|---|---|
 | `random` | `RANDOM_MEAN ± RANDOM_STD` | `RANDOM_REV` | `RANDOM_T4`% | — | 100.0% |
-| `frozen-qwen-1.5b` | `QWEN_BASE_MEAN ± QWEN_BASE_STD` | `QWEN_BASE_REV` | `QWEN_BASE_T4`% | `QWEN_BASE_ECE` | `QWEN_BASE_VALID`% |
+| `frozen-qwen-1.5b` | 0.042 (mean over 20 scenarios) | `QWEN_BASE_REV` | **0%** (0/5 T4 traps) | `QWEN_BASE_ECE` | `QWEN_BASE_VALID`% |
 | `frozen-llama-1b` | `LLAMA_BASE_MEAN ± LLAMA_BASE_STD` | `LLAMA_BASE_REV` | `LLAMA_BASE_T4`% | `LLAMA_BASE_ECE` | `LLAMA_BASE_VALID`% |
 | `gpt-4o-mini` | `GPT_MEAN ± GPT_STD` | `GPT_REV` | `GPT_T4`% | `GPT_ECE` | `GPT_VALID`% |
 | **`viveka-qwen-1.5b`** (trained) | **`QWEN_TRAINED_MEAN ± QWEN_TRAINED_STD`** | **`QWEN_TRAINED_REV`** | **`QWEN_TRAINED_T4`%** | **`QWEN_TRAINED_ECE`** | **`QWEN_TRAINED_VALID`%** |
