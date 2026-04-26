@@ -45,6 +45,9 @@ train = [
 
 [project.scripts]
 viveka-server = "viveka.server.app:main"
+# `server` entry point required by `openenv push` validator (multi-mode layout).
+# Re-exports through `server/app.py` shim — real code lives in viveka.server.app.
+server = "server.app:main"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]

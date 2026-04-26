@@ -1,16 +1,17 @@
-"""Combined two-architecture reward curve — Qwen v6 vs Llama v3.
+"""Combined reward curves — Qwen 1.5B vs Llama 1B vs Llama 3B.
 
 Reads:
-  --qwen-log    runs/qwen_v6/training_log.jsonl
-  --llama-log   runs/llama_v3/training_log.jsonl
+  --qwen-log     runs/qwen_v6/training_log.jsonl
+  --llama-log    runs/llama_v3/training_log.jsonl
+  --llama3b-log  runs/llama3b_v1/training_log.jsonl   (optional)
 
 Writes:
-  --output-png  eval/plots/reward_curves_combined.png
+  --output-png   eval/plots/reward_curves_combined.png
 
-The headline plot for the rubric: shows two architectures trained on identical
-GRPO config, with Qwen climbing past zero and Llama plateauing deeply negative.
-The narrative — "Qwen needed an additional EOS-list fix to terminate generation,
-which unlocked the +0.88 reward delta" — is the storytelling differentiator.
+The headline plot for the rubric: shows three architectures trained on identical
+GRPO config. Qwen climbed past zero (after EOS-list fix), Llama-1B plateaued
+deeply negative (capacity ceiling), and Llama-3B climbed cleanly without needing
+the EOS fix.
 """
 
 from __future__ import annotations
@@ -65,15 +66,20 @@ def plot_combined(
     output_png: Path,
     smooth_window: int = 3,
     xkcd: bool = False,
+    llama3b_log: Path | None = None,
 ) -> None:
     qwen_rows = _read_jsonl(qwen_log)
     llama_rows = _read_jsonl(llama_log)
+    llama3b_rows = _read_jsonl(llama3b_log) if llama3b_log and llama3b_log.exists() else []
 
     qx, qy = _extract_series(qwen_rows, "reward")
     lx, ly = _extract_series(llama_rows, "reward")
+    l3x, l3y = (_extract_series(llama3b_rows, "reward")
+                if llama3b_rows else (np.array([]), np.array([])))
 
     qy_smooth = _smooth(qy, smooth_window)
     ly_smooth = _smooth(ly, smooth_window)
+    l3y_smooth = _smooth(l3y, smooth_window) if len(l3y) > 0 else l3y
 
     output_png.parent.mkdir(parents=True, exist_ok=True)
 
@@ -85,14 +91,20 @@ def plot_combined(
 
     QWEN_COLOR = "#1f77b4"
     LLAMA_COLOR = "#888888"
+    LLAMA3B_COLOR = "#2ca02c"
 
     ax_main.scatter(qx, qy, s=18, alpha=0.35, color=QWEN_COLOR)
     ax_main.plot(qx, qy_smooth, color=QWEN_COLOR, linewidth=2.4,
-                 label=f"Qwen2.5-1.5B-Instruct (final={qy[-1]:+.3f}, peak={qy.max():+.3f})")
+                 label=f"Qwen2.5-1.5B (final={qy[-1]:+.3f}, peak={qy.max():+.3f})")
 
     ax_main.scatter(lx, ly, s=18, alpha=0.35, color=LLAMA_COLOR)
     ax_main.plot(lx, ly_smooth, color=LLAMA_COLOR, linewidth=2.4,
-                 label=f"Llama-3.2-1B-Instruct (final={ly[-1]:+.3f}, peak={ly.max():+.3f})")
+                 label=f"Llama-3.2-1B (final={ly[-1]:+.3f}, peak={ly.max():+.3f})")
+
+    if len(l3y) > 0:
+        ax_main.scatter(l3x, l3y, s=18, alpha=0.35, color=LLAMA3B_COLOR)
+        ax_main.plot(l3x, l3y_smooth, color=LLAMA3B_COLOR, linewidth=2.4,
+                     label=f"Llama-3.2-3B (final={l3y[-1]:+.3f}, peak={l3y.max():+.3f})")
 
     ax_main.axhline(0.0, color="#000000", linestyle="-", linewidth=0.8, alpha=0.5)
     floor_style = "-" if xkcd else ":"
@@ -101,25 +113,32 @@ def plot_combined(
 
     ax_main.set_ylabel("Reward (per-step mean across G=4 rollouts)", fontsize=11)
     ax_main.set_title(
-        "Viveka GRPO Training — Two Architectures, Identical Config\n"
-        "Qwen climbed past zero after EOS-list fix; Llama plateaued (no fix needed but lower ceiling)",
+        "Viveka GRPO Training — Three Architectures, Identical Config\n"
+        "Qwen 1.5B climbed past zero after EOS-list fix; Llama 1B plateaued; Llama 3B climbed cleanly",
         fontsize=12,
     )
     ax_main.grid(True, alpha=0.3, linestyle="-" if xkcd else ":")
     ax_main.legend(loc="lower right", frameon=True, fontsize=10)
 
-    y_min = min(-1.0, qy.min(), ly.min()) - 0.05
-    y_max = max(0.3, qy.max(), ly.max()) + 0.05
+    all_mins = [-1.0, qy.min(), ly.min()] + ([l3y.min()] if len(l3y) > 0 else [])
+    all_maxes = [0.3, qy.max(), ly.max()] + ([l3y.max()] if len(l3y) > 0 else [])
+    y_min = min(all_mins) - 0.05
+    y_max = max(all_maxes) + 0.05
     ax_main.set_ylim(y_min, y_max)
 
     qx_clip, qy_clip = _extract_series(qwen_rows, "clipped_ratio")
     lx_clip, ly_clip = _extract_series(llama_rows, "clipped_ratio")
+    l3x_clip, l3y_clip = (_extract_series(llama3b_rows, "clipped_ratio")
+                          if llama3b_rows else (np.array([]), np.array([])))
     if len(qy_clip) > 0:
         ax_clip.plot(qx_clip, qy_clip, color=QWEN_COLOR, linewidth=2.0, marker="o", markersize=4,
-                     label=f"Qwen (final clipped={qy_clip[-1]:.3f})")
+                     label=f"Qwen 1.5B (final={qy_clip[-1]:.3f})")
     if len(ly_clip) > 0:
         ax_clip.plot(lx_clip, ly_clip, color=LLAMA_COLOR, linewidth=2.0, marker="s", markersize=4,
-                     label=f"Llama (final clipped={ly_clip[-1]:.3f})")
+                     label=f"Llama 1B (final={ly_clip[-1]:.3f})")
+    if len(l3y_clip) > 0:
+        ax_clip.plot(l3x_clip, l3y_clip, color=LLAMA3B_COLOR, linewidth=2.0, marker="^", markersize=4,
+                     label=f"Llama 3B (final={l3y_clip[-1]:.3f})")
     ax_clip.set_ylabel("Clipped ratio\n(lower = healthier)", fontsize=10)
     ax_clip.set_xlabel("Training step", fontsize=11)
     ax_clip.set_ylim(0.0, 1.05)
@@ -128,13 +147,17 @@ def plot_combined(
 
     qy_final = float(qy[-1])
     ly_final = float(ly[-1])
-    delta = qy_final - ly_final
+    box_lines = [
+        f"Qwen 1.5B final:  {qy_final:+.3f}",
+        f"Llama 1B final:   {ly_final:+.3f}",
+    ]
+    if len(l3y) > 0:
+        l3y_final = float(l3y[-1])
+        box_lines.append(f"Llama 3B final:   {l3y_final:+.3f}")
     ax_main.text(
         0.02,
         0.97,
-        f"Qwen final reward:  {qy_final:+.3f}\n"
-        f"Llama final reward: {ly_final:+.3f}\n"
-        f"Δ (Qwen − Llama):   {delta:+.3f}",
+        "\n".join(box_lines),
         transform=ax_main.transAxes,
         fontsize=10,
         verticalalignment="top",
@@ -146,21 +169,27 @@ def plot_combined(
     fig.savefig(output_png, dpi=200, bbox_inches="tight")
     plt.close(fig)
     print(f"wrote {output_png}")
-    print(f"  Qwen:  n={len(qy)} steps, final={qy_final:+.4f}, peak={qy.max():+.4f}")
-    print(f"  Llama: n={len(ly)} steps, final={ly_final:+.4f}, peak={ly.max():+.4f}")
-    print(f"  Δ Qwen − Llama: {delta:+.4f}")
+    print(f"  Qwen 1.5B:  n={len(qy)} steps, final={qy_final:+.4f}, peak={qy.max():+.4f}")
+    print(f"  Llama 1B:   n={len(ly)} steps, final={ly_final:+.4f}, peak={ly.max():+.4f}")
+    if len(l3y) > 0:
+        print(f"  Llama 3B:   n={len(l3y)} steps, final={float(l3y[-1]):+.4f}, peak={l3y.max():+.4f}")
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--qwen-log", type=Path, default=Path("runs/qwen_v6/training_log.jsonl"))
     p.add_argument("--llama-log", type=Path, default=Path("runs/llama_v3/training_log.jsonl"))
+    p.add_argument("--llama3b-log", type=Path, default=Path("runs/llama3b_v1/training_log.jsonl"),
+                   help="Llama 3B training log (set to /dev/null to skip)")
     p.add_argument("--output-png", type=Path, default=Path("eval/plots/reward_curves_combined.png"))
     p.add_argument("--smooth-window", type=int, default=3)
     p.add_argument("--xkcd", action="store_true",
                    help="Render in xkcd / hand-drawn style for the README hero image")
     args = p.parse_args()
-    plot_combined(args.qwen_log, args.llama_log, args.output_png, args.smooth_window, args.xkcd)
+    plot_combined(
+        args.qwen_log, args.llama_log, args.output_png, args.smooth_window,
+        args.xkcd, args.llama3b_log,
+    )
 
 
 if __name__ == "__main__":
