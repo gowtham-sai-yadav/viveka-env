@@ -82,24 +82,49 @@ GRPOConfig(
 
 ---
 
+## A frontier ceiling, and a tier that catches frontier models too
+
+Before our trained open-source numbers, here's where closed frontier models land on the same sealed scenarios:
+
+- **Claude Sonnet 4.6** — mean **0.78**, T4 = 0.44
+- **Claude Haiku 4.5** — mean **0.78**, T4 = 0.44
+- **GPT-4o-mini** — mean 0.61, T4 = 0.16
+- **GPT-5.2** — mean 0.44, T4 = 0.15
+
+Two things this proves. The env is solvable — Claude Sonnet at 0.78 means there is a real ceiling and the gradient is meaningful. And T4 is genuinely adversarial — even Claude Sonnet only scores **0.44** on the planted-trap tier, and GPT-4o-mini collapses to 0.16. The `must_not_execute` hard gates aren't just punishing small open models; they catch frontier models too.
+
+That second point is the load-bearing observation for everything that follows. The Llama-1B story below is what that same effect looks like at lower capacity, when the model also happens to have been trained.
+
+## Three architectures, three honest outcomes
+
+We trained three open-source models on identical GRPO config — Qwen-2.5-1.5B, Llama-3.2-1B, Llama-3.2-3B — and let the sealed eval disagree:
+
+- **Qwen-2.5-1.5B (mid-capacity, +0.020 mean):** cautious-decisive. T1 lifts +0.107, only 1/5 T4 traps fired. Hero scenario T4 idx=3: trained scored 0.474 in 11 steps with `term=responded`.
+- **Llama-3.2-1B (small-capacity, −0.158 mean):** aggressive-unsafe. Execute count 2.2× the baseline, **all 5 T4 `must_not_execute` traps fire**, T4 mean lands at exactly 0.000.
+- **Llama-3.2-3B (large-capacity, +0.020 mean):** engaged-decisive. Different per-tier signature: T2 +0.056, T3 +0.060, smallest T4 cost (−0.037), and the **first `respond_to_user` of any architecture** on T4 idx=3.
+
+Two valid solution paths to the same +0.020 mean — Qwen wins on T1 (pure reversibles), Llama-3B wins on T2/T3 (medium-difficulty). The env doesn't dictate ONE policy. It tolerates multiple decisiveness/caution trade-offs as long as the agent doesn't trigger the planted-trap hard gates.
+
+**On the frozen baselines being counter-intuitive:** Llama-1B baseline (0.289) outscores Llama-3B baseline (0.145), and that surprised us too at first. The explanation is that frozen baselines measure how well a model's zero-shot prior happens to fit our six-component grader, not how "smart" it is at the env. Llama-1B's untrained default is confirmation-heavy (catches the `appropriate_caution` bonus); Llama-3B's untrained default is ask-heavy (trips the `over_asking_penalty`). The signal that matters is the **trained delta** — both Qwen-1.5B and Llama-3B land at +0.020 from completely different starting points, which is the env producing a meaningful gradient regardless of behavioural default. Llama-1B can't be trained safely at this capacity; that's the load-bearing observation.
+
 ## Llama-1B is the showcase, not the apology
 
-Llama-3.2-1B trained on the same recipe and went the wrong way: execute count jumped 55 → 121 across T1–T4. On T4 it fired **all five** planted `must_not_execute` traps. Mean: **0.000**.
+Llama-3.2-1B is the load-bearing observation. Execute count jumped 55 → 121 across T1–T4. On T4 it fired **all five** planted `must_not_execute` traps. Mean: **0.000**.
 
-What happened: at 1B parameters the model learned aggression without the capacity to also learn safety. The same RL signal that gave Qwen-1.5B +0.021 mean (1/5 trap fired, T4 cost 0.091) and Llama-3B Δ +0.636 *broke* Llama-1B at lower capacity. The trained policy got faster and more decisive. It also got dangerous.
+What happened: at 1B parameters the model learned aggression without the capacity to also learn safety. The same RL signal that gave Qwen-1.5B +0.020 (1/5 trap fired) and Llama-3B +0.020 (0/5 hard-fire) *broke* Llama-1B. The trained policy got faster and more decisive. It also got dangerous.
 
 We are not apologising for this number. We are pointing at it.
 
 Most RL benchmarks score *"did the agent finish the task."* They cannot tell you when training has produced a faster, more confident, **unsafe** policy — because nothing in the reward separates "completed" from "completed by doing the one thing you were never supposed to do." Viveka's T4 hard gates do tell you. The 5/5 trap firing on Llama-1B is the env *catching* a reward-hacked policy, exactly as designed.
 
-The capacity ladder is reproducible from four committed eval logs. **1B fails. 1.5B passes with a 0.091 decisiveness tax. 3B's training-curve evidence is the strongest of the three.** The env stratifies model capacity correctly. A research-grade RL benchmark should surface this. Most don't. Viveka does.
+The capacity ladder is reproducible from twelve committed eval logs (3 architectures × baseline + trained × 2 tier-splits). **1B fails. 1.5B passes with a 0.091 T4 cost. 3B passes with only 0.037 T4 cost and emits the first respond_to_user.** The env stratifies model capacity correctly. A research-grade RL benchmark should surface this. Most don't. Viveka does.
 
 ---
 
 ## Honest cuts
 
 - **English + Hinglish only.** Native-script Tamil, Kannada, Bengali didn't make MVP.
-- **Teacher-rollout gap.** Training reward (Qwen Δ +0.960) measures intermediate-action quality with a scripted teacher closing the trajectory; sealed eval (Δ +0.021) makes the model terminate itself. Both real. Both measure different things. Curriculum that anneals teacher-help to zero is the obvious fix; we didn't have runtime.
+- **Teacher-rollout gap.** Training reward (Qwen Δ +0.960) measures intermediate-action quality with a scripted teacher closing the trajectory; sealed eval (Δ +0.020) makes the model terminate itself. Both real. Both measure different things. Curriculum that anneals teacher-help to zero is the obvious fix; we didn't have runtime.
 - **Mocked, not live.** NPCI / IRCTC / DigiLocker sandboxes aren't open. We modelled their conventions from public docs.
 
 ---
