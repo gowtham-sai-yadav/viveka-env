@@ -433,9 +433,17 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
         done: bool = False,
         reward: float | None = None,
     ) -> VivekaObservation:
+        # Pass services_state so observation.metadata["reward_signals"] reflects
+        # the same state-aware view the reward grader uses. Without it,
+        # viveka.task_progress (and any other state-diff-dependent signal)
+        # silently reads as 0.0 in the obs metadata, breaking per-step
+        # dashboards / plots / debugging — even though obs.reward (scalar)
+        # is correct because env.step() passes _compute_intermediate_reward()
+        # separately. Mirrors the d597b32 fix on _compute_intermediate_reward.
         signals = compute_step_reward_signals(
             scenario=self._scenario,
             actions_taken=self._actions_taken,
+            services_state=self._snapshot_services(),
         )
         last_reply = self._user_responses[-1]["reply"] if self._user_responses else None
         return VivekaObservation(
