@@ -429,6 +429,11 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--no-wandb", action="store_true")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument(
+        "--resume", action="store_true",
+        help="Resume from latest checkpoint in --output-dir (e.g. checkpoint-50). "
+             "If no checkpoint exists, training starts from step 0.",
+    )
     return p.parse_args()
 
 
@@ -656,7 +661,24 @@ def main() -> None:
         f"[train] {args.episodes} episodes, G={cfg.num_generations}, "
         f"bs={cfg.per_device_train_batch_size}x{cfg.gradient_accumulation_steps}"
     )
-    trainer.train()
+
+    # Resume support: if --resume passed AND a checkpoint exists in
+    # output_dir, continue from that step. Otherwise start fresh. Lets us
+    # recover from Kaggle session disconnects without losing the prior
+    # 50/100 steps of training. TRL/transformers trainer.train() accepts
+    # resume_from_checkpoint=True to auto-detect the latest checkpoint-N
+    # subdir.
+    resume_arg: bool | str = False
+    if args.resume:
+        ckpt_dirs = sorted(Path(args.output_dir).glob("checkpoint-*"),
+                           key=lambda p: int(p.name.split("-")[1]))
+        if ckpt_dirs:
+            latest = ckpt_dirs[-1]
+            print(f"[resume] found checkpoint, continuing from {latest.name}")
+            resume_arg = str(latest)
+        else:
+            print(f"[resume] no checkpoint in {args.output_dir} — starting from step 0")
+    trainer.train(resume_from_checkpoint=resume_arg)
 
     out = Path(args.output_dir) / "lora"
     model.save_pretrained(str(out))
