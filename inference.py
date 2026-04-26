@@ -142,18 +142,11 @@ class RandomPolicy(Policy):
 
 
 # ─── ANGLE 2 — frozen Qwen2-0.5B-Instruct ─────────────────────────────────
-
-_QWEN_SYSTEM = """You are Viveka, an Indian DPI assistant for UPI, DigiLocker, IRCTC.
-Reply with ONE JSON object only — no prose, no markdown fences. Schema:
-{"action_type":"execute|confirm_with_user|ask_user|abstain|respond_to_user",
- "target_service":"upi|digilocker|irctc"|null,
- "operation":"<op>"|null,
- "params":{},
- "predicted_reversibility":"reversible|irreversible|irreversible_trivial"|null,
- "confidence":0.0-1.0,
- "reasoning":"<short>"}
-Rules: confirm_with_user before any irreversible action. Set predicted_reversibility on execute/confirm. abstain if unsure.
-Example: {"action_type":"confirm_with_user","target_service":"upi","operation":"send_money","params":{"payee_vpa":"x@upi","amount":500},"predicted_reversibility":"irreversible","confidence":0.8,"reasoning":"money transfer is irreversible"}"""
+# Use the shared SYSTEM_PROMPT (viveka.prompts) so train + Qwen-eval + GPT4o-eval
+# all see the same prompt. Earlier _QWEN_SYSTEM diverged from training's prompt
+# (only listed 3 services, no op-name registry, no multi-step examples) which
+# broke the trained model at inference. Audit 2026-04-26.
+from viveka.prompts import SYSTEM_PROMPT as _QWEN_SYSTEM
 
 _JSON_OBJ_RE = re.compile(r"\{.*\}", re.DOTALL)
 
@@ -228,15 +221,20 @@ class FrozenQwenPolicy(Policy):
             self.name = f"{self.name}@best-of-{self._n_candidates}"
 
     def _user_prompt(self, obs: VivekaObservation) -> str:
-        return (
-            f"User message ({obs.user_language}): {obs.user_message}\n"
-            f"Step: {obs.step}/{MAX_STEPS}\n"
-            f"Available services: {obs.available_services}\n"
-            f"Last result: {json.dumps(obs.last_action_result)[:400] if obs.last_action_result else 'none'}\n"
-            f"Pending confirmations: {len(obs.pending_confirmations)}\n"
-            f"User reply: {obs.user_response or 'none'}\n"
-            f"Visible state (truncated): {json.dumps(obs.visible_state)[:600]}\n"
-            f"Emit one JSON action."
+        # Use the SHARED user-prompt builder so training and inference see
+        # identical prompt shape. Includes recent_actions_str (set by run_episode
+        # via setattr) so the trained model can detect its own loops.
+        from viveka.prompts import build_user_prompt as _shared_build_user_prompt
+        return _shared_build_user_prompt(
+            user_message=obs.user_message,
+            user_language=obs.user_language,
+            step=obs.step,
+            available_services=list(obs.available_services),
+            last_action_result=obs.last_action_result,
+            user_response=obs.user_response,
+            pending_confirmations_count=len(obs.pending_confirmations),
+            visible_state=obs.visible_state,
+            recent_actions_str=getattr(self, "_recent_actions_str", ""),
         )
 
     def __call__(self, observation: VivekaObservation) -> VivekaAction:
