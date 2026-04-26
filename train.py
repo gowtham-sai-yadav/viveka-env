@@ -536,13 +536,16 @@ def main() -> None:
     # reward floor at -0.97. Llama-3.2 dodged this because its <|eot_id|> stayed
     # consistent through the legacy-tokenizer path.
     _chat_eos: int | None = None
-    for _tok_str in ("<|im_end|>", "<|eot_id|>"):
+    _eos_list: list[int] = []
+    for _tok_str in ("<|im_end|>", "<|eot_id|>", "<|endoftext|>"):
         _tid = tokenizer.convert_tokens_to_ids(_tok_str)
         if isinstance(_tid, int) and _tid > 0 and _tid != getattr(tokenizer, "unk_token_id", -1):
-            _chat_eos = _tid
-            tokenizer.eos_token_id = _tid
-            tokenizer.eos_token = _tok_str
-            break
+            if _chat_eos is None:
+                _chat_eos = _tid
+                tokenizer.eos_token_id = _tid
+                tokenizer.eos_token = _tok_str
+            if _tid not in _eos_list:
+                _eos_list.append(_tid)
 
     if _chat_eos is not None:
         _eos_seen: set[int] = set()
@@ -568,6 +571,7 @@ def main() -> None:
                     _pin_eos(sub)
         _pin_eos(model)
         print(f"[fix] pinned chat-end EOS to id={_chat_eos} ({tokenizer.eos_token!r})")
+        print(f"[fix] generation_kwargs.eos_token_id list = {_eos_list}")
     else:
         print(f"[warn] no <|im_end|> or <|eot_id|> in vocab; leaving eos_token_id={tokenizer.eos_token_id}")
 
@@ -600,6 +604,16 @@ def main() -> None:
     # Tried Sullivan 2025's G=16/temp=1.0 (richer gradient per step) — measured
     # 270s/step on Qwen2.5-1.5B+T4, projected 30hr for 400 steps. Reverted.
     # Keep G=4 so each step is ~15s and 800 episodes finish in ~90 min.
+    # generation_kwargs is the ONLY way to override TRL's frozen GenerationConfig
+    # (see grpo_trainer.py:564-579 in TRL 0.24 — `generation_kwargs.update(args.generation_kwargs)`
+    # runs AFTER tokenizer-derived defaults). Pinning model.config or model.generation_config
+    # is dead code for TRL's generate() path; only this works. Qwen2.5-Instruct's official
+    # generation_config.json ships eos=[<|im_end|>, <|endoftext|>] but tokenizer can only
+    # hold a single int → without this list, GRPO collapses to one stop and clipped_ratio=1.
+    _gen_kwargs: dict[str, Any] = {}
+    if _eos_list:
+        _gen_kwargs["eos_token_id"] = _eos_list
+
     cfg = GRPOConfig(
         output_dir=args.output_dir,
         per_device_train_batch_size=1,
@@ -623,6 +637,7 @@ def main() -> None:
         report_to=("none" if args.no_wandb else "wandb"),
         seed=args.seed,
         num_train_epochs=1,
+        generation_kwargs=_gen_kwargs or None,
     )
 
     from viveka.server.training_log_callback import TrainingLogCallback
