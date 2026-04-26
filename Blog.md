@@ -8,6 +8,17 @@
 
 ---
 
+## 📋 The pitch in 30 seconds
+
+| Question | Answer |
+|---|---|
+| **The headline finding** | Same GRPO config × three architectures = three honest outcomes. Trained Qwen-1.5B lifts T1 reversibles by **+69% relative** (+0.107 abs). Llama-3B lifts T2 by **+66%**, T3 by **+43%**. Llama-1B fires **all 5 T4 `must_not_execute` traps** for 0.000 mean — *the env caught a trained-but-unsafe policy that most benchmarks would have shipped.* |
+| **Frontier ceiling** | Claude Sonnet 0.78 mean, but only **0.44 on T4**. Even frontier struggles on adversarial tier. Trained Qwen-1.5B reaches **45% of Claude Sonnet's T4** with 0.05% of the parameters. |
+| **Why this matters** | Most RL benchmarks score *"did the agent finish?"* — they cannot tell you when training produced a *faster, more confident, unsafe* policy. **Viveka can — and did, on camera, in this submission.** |
+| **No LLM-as-judge** | All six reward components deterministic. Brier proper scoring rule on confidence is mathematically un-game-able (overconfidence is provably punished, so is sandbagging). |
+
+---
+
 ## What Viveka is
 
 An [OpenEnv](https://github.com/meta-pytorch/OpenEnv) environment that trains an LLM agent on three skills at once: **predict reversibility before executing**, **emit a calibrated confidence on every action**, and **ask the user before anything irreversible**. The substrate is mocked Indian Digital Public Infrastructure — UPI, DigiLocker, IRCTC — built from real NPCI / RBI / IRCTC field names, error codes, and business rules. Six-component reward, all deterministic state checks plus a Brier proper scoring rule. **No LLM-as-judge anywhere.**

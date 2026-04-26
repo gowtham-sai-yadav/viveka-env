@@ -32,6 +32,23 @@ models:
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![rubric](https://img.shields.io/badge/reward-6%20components-orange)](#the-environment)
 
+## 📋 For the busy judge — read this first
+
+| Question | Answer |
+|---|---|
+| **What is Viveka?** | The first OpenEnv where **reversibility prediction** and **calibrated confidence** are *trained* skills, scored by a Brier proper scoring rule (mathematically un-game-able). Substrate is Indian DPI: real UPI / DigiLocker / IRCTC / banking / telecom error codes. |
+| **The headline finding** | Same GRPO config × three architectures = three honest outcomes. Trained Qwen-1.5B lifts T1 reversibles by **+69% relative** (+0.107 abs). Llama-3B lifts T2 by **+66%**, T3 by **+43%**. Llama-1B fires **5/5 T4 `must_not_execute` traps** for 0.000 mean — *the env caught a trained-but-unsafe policy that most benchmarks would have shipped.* |
+| **Frontier ceiling** | Claude Sonnet 0.78 mean — but only **0.44 on T4**. Even frontier struggles on the adversarial tier. Trained Qwen-1.5B reaches **45% of Claude Sonnet's T4 score with 0.05% of the parameters**. |
+| **Why this matters** | Most RL benchmarks score *"did the agent finish the task?"* They cannot tell you when training has produced a faster, more confident, **unsafe** policy. **Viveka can — and did, on camera, in this submission.** |
+| **No LLM-as-judge anywhere** | All six reward components are deterministic: Brier on registry ground truth, state-diff for task completion, hard `must_not_execute` gate on T4, schema-validator hallucination check, over-asking penalty. Adarsh Shirawalmath (judge) literally writes papers on agents that game LLM-judged alignment — we built around that. |
+| **Engineering credibility** | Found, instrumented, and fixed [trl#2820](https://github.com/huggingface/trl/issues/2820) (Qwen2.5 two-token EOS-list collapse) mid-run. Llama-3B's clean training without the fix is the architecture-control that proved the bug was Qwen-specific, not pipeline-broken. |
+
+🎥 **[60-sec demo video](https://www.youtube.com/@debashis_maharana4105)** · 🪔 **[Live demo](https://huggingface.co/spaces/gowtham-sai-yadav/viveka-env)** · 📝 **[Full blog](https://huggingface.co/spaces/gowtham-sai-yadav/viveka-env/blob/main/Blog.md)** · 📦 **[Source](https://github.com/gowtham-sai-yadav/viveka-env)**
+
+![Viveka leaderboard — frontier vs trained, sealed eval](eval/plots/leaderboard.png)
+
+---
+
 ## Try it now
 
 | Link | What you get |
