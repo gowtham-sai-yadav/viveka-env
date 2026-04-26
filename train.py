@@ -663,12 +663,13 @@ def main() -> None:
     )
 
     # Resume support: if --resume passed AND a checkpoint exists in
-    # output_dir, continue from that step. Otherwise start fresh. Lets us
-    # recover from Kaggle session disconnects without losing the prior
-    # 50/100 steps of training. TRL/transformers trainer.train() accepts
-    # resume_from_checkpoint=True to auto-detect the latest checkpoint-N
-    # subdir.
-    resume_arg: bool | str = False
+    # output_dir, continue from that step. Otherwise start fresh —
+    # default value None is the SAME as calling trainer.train() with no
+    # args (the pre-2026-04-26 behavior). Lets us recover from Kaggle
+    # session disconnects without losing the prior 50/100 steps of
+    # training, while preserving exact backwards compatibility for any
+    # existing training script that doesn't pass --resume.
+    resume_arg: str | None = None
     if args.resume:
         ckpt_dirs = sorted(Path(args.output_dir).glob("checkpoint-*"),
                            key=lambda p: int(p.name.split("-")[1]))
@@ -678,7 +679,12 @@ def main() -> None:
             resume_arg = str(latest)
         else:
             print(f"[resume] no checkpoint in {args.output_dir} — starting from step 0")
-    trainer.train(resume_from_checkpoint=resume_arg)
+
+    if resume_arg is None:
+        # Identical to the original trainer.train() call (pre-2026-04-26).
+        trainer.train()
+    else:
+        trainer.train(resume_from_checkpoint=resume_arg)
 
     out = Path(args.output_dir) / "lora"
     model.save_pretrained(str(out))
