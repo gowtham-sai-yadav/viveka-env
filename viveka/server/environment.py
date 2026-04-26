@@ -307,9 +307,14 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
         return {"matched": matched, "details": details}
 
     def _compute_intermediate_reward(self) -> float:
+        # Pass services_state so respond_to_user Brier is tied to actual
+        # task_completion (per graders.py:318-321). Without it, intermediate
+        # signals diverge from the final episode reward, causing GRPO to learn
+        # from misaligned per-step credit. Audit 2026-04-26 (env + graders).
         signals = compute_step_reward_signals(
             scenario=self._scenario,
             actions_taken=self._actions_taken,
+            services_state=self._snapshot_services(),
         )
         if not signals:
             return 0.0
