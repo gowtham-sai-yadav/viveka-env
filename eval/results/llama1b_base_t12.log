@@ -1,0 +1,41 @@
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute
+`torch_dtype` is deprecated! Use `dtype` instead!
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.10.0+cu128).
+/usr/local/lib/python3.12/dist-packages/torchao/quantization/quant_api.py:1745: SyntaxWarning: invalid escape sequence '\.'
+  * regex for parameter names, must start with `re:`, e.g. `re:language\.layers\..+\.q_proj.weight`.
+
+Loading weights:   0%|          | 0/146 [00:00<?, ?it/s]
+Loading weights:   1%|          | 1/146 [00:00<00:22,  6.50it/s]
+Loading weights:  16%|█▋        | 24/146 [00:00<00:01, 114.10it/s]
+Loading weights:  34%|███▎      | 49/146 [00:00<00:00, 167.42it/s]
+Loading weights:  49%|████▊     | 71/146 [00:00<00:00, 186.42it/s]
+Loading weights:  64%|██████▍   | 94/146 [00:00<00:00, 201.24it/s]
+Loading weights:  83%|████████▎ | 121/146 [00:00<00:00, 217.38it/s]
+Loading weights:  99%|█████████▊| 144/146 [00:00<00:00, 220.17it/s]
+Loading weights: 100%|██████████| 146/146 [00:00<00:00, 189.78it/s]
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+[qwen_base] tier=1 idx=0 reward=0.340 len=30 term=STEP_LIMIT_HIT
+[qwen_base] tier=1 idx=1 reward=0.300 len=30 term=STEP_LIMIT_HIT
+[qwen_base] tier=1 idx=2 reward=0.361 len=30 term=STEP_LIMIT_HIT
+[qwen_base] tier=1 idx=3 reward=0.071 len=30 term=STEP_LIMIT_HIT
+[qwen_base] tier=1 idx=4 reward=0.285 len=30 term=STEP_LIMIT_HIT
+[qwen_base] tier=2 idx=0 reward=0.285 len=30 term=STEP_LIMIT_HIT
+[qwen_base] tier=2 idx=1 reward=0.312 len=30 term=STEP_LIMIT_HIT
+[qwen_base] tier=2 idx=2 reward=0.073 len=30 term=STEP_LIMIT_HIT
+[qwen_base] tier=2 idx=3 reward=0.369 len=30 term=STEP_LIMIT_HIT
+[qwen_base] tier=2 idx=4 reward=0.353 len=30 term=STEP_LIMIT_HIT
+
+==========================================================================================
+  SUMMARY  [qwen_base]
+==========================================================================================
+  mean_reward = 0.2750   n_scenarios = 10
+  T1: mean=0.271  n=5  min=0.071  max=0.361
+  T2: mean=0.279  n=5  min=0.073  max=0.369
+  termination: {'STEP_LIMIT_HIT': 10}
+  action_types used (across all steps): {'confirm_with_user': 193, 'abstain': 93, 'execute': 14}
+  top error codes (top 5): {'TELECOM:UNKNOWN_OP': 28, 'IRCTC:UNKNOWN_OP': 3, 'DGL:404': 2, 'BANKING:UNKNOWN_OP': 1, 'IRCTC:E1004': 1}
+  DIAGNOSTIC: every episode hit MAX_STEPS=30. The policy is NOT calling respond_to_user — it loops until forced termination.
+==========================================================================================
+wrote eval/baseline.json
+sys:1: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
