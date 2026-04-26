@@ -408,6 +408,7 @@ def build_dataset(tier_mix: dict[int, float], n: int, seed: int = 0):
             loop_warning=md.get("loop_warning"),
             state_diff=md.get("state_diff"),
             recent_actions_lines=md.get("recent_actions"),
+            safety_concerns=md.get("safety_concerns"),
         )
         rows.append(
             {

@@ -1,0 +1,28 @@
+# Viveka training extras. Install on TOP of requirements.txt:
+#   pip install -r requirements.txt -r requirements-train.txt
+#
+# These are the GRPO + Unsloth + QLoRA pieces. Heavy (torch, transformers).
+# Source of truth is pyproject.toml [project.optional-dependencies.train].
+
+torch>=2.0
+
+# GRPOConfig + GRPOTrainer were added in TRL 0.13. Newer TRL transitively
+# imports llm_blender (broken on transformers 4.45+) — train.py stubs that
+# out at the top of the file before TRL's lazy import fires.
+trl>=0.13.0
+
+transformers>=4.40.0
+accelerate>=0.30.0
+datasets>=2.18.0
+huggingface-hub>=0.23.2
+
+# peft = LoRA adapter load/save. Used by inference.FrozenQwenPolicy too,
+# but the training flow is where we actually create adapters.
+peft>=0.12
+
+# Optional but strongly recommended on T4 / consumer GPUs — Unsloth's
+# 4-bit quantization + fused kernels are how train.py fits 1.5B-3B models
+# in 16GB VRAM with GRPO G=4. Install separately if your platform supports it:
+#   pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
+# (Pinned via git URL because Unsloth releases on PyPI lag the breaking
+# changes in transformers/torch — git main is the stable target.)

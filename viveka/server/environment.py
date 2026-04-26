@@ -33,6 +33,7 @@ from viveka.server.long_horizon_memory import (
 from viveka.server.reversibility_registry import lookup
 from viveka.server.reward_stabilization import logit_clip_reward
 from viveka.server.rubric import VivekaRubric
+from viveka.server.safety_signals import extract_safety_concerns
 from viveka.server.scenario_loader import load_scenario_by_tier
 from viveka.server.services._base import MockService, ServiceError
 from viveka.server.services.banking import BankingService
@@ -511,6 +512,19 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
             state_diff = compute_state_diff(self._prev_visible_state, visible_state)
         except Exception:
             state_diff = {}
+        # Production-grade safety signals — derived deterministically from
+        # visible_state + pending confirmations. Mirrors what a real DPI
+        # platform (DigiLocker SDK, IRCTC API, UPI risk engine) would surface
+        # to any agent integrating with it. Empty for scenarios that don't
+        # trigger any rule (most T1/T2). Module: server/safety_signals.py
+        try:
+            safety_concerns = extract_safety_concerns(
+                visible_state,
+                list(self._pending_confirmations),
+                user_message=self._state.user_message,
+            )
+        except Exception:
+            safety_concerns = []
 
         obs = VivekaObservation(
             episode_id=self._state.episode_id or "",
@@ -540,6 +554,8 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
                 "loop_warning": loop_warning,
                 "last_reasoning": last_reasoning,
                 "state_diff": state_diff,
+                # Production-grade safety / business-rule warnings (T4 anchor).
+                "safety_concerns": safety_concerns,
             },
         )
         # Update diff baseline AFTER constructing the obs. The next call sees

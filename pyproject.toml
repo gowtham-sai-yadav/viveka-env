@@ -16,9 +16,11 @@ dependencies = [
     "pydantic>=2.0",
     "uvicorn>=0.20.0",
     "openai>=1.0",
+    "anthropic>=0.40",
     "gradio>=4.0",
     "scikit-learn>=1.7.2",
     "matplotlib>=3.7",
+    "scipy>=1.10",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +38,9 @@ train = [
     # TRL imports mergekit transitively but never uses it in the GRPO codepath;
     # train.py installs a stub module so the import chain succeeds without it.
     "huggingface-hub>=0.23.2",
+    # peft is used by inference.FrozenQwenPolicy to load LoRA adapters
+    # (eval-side) AND by train.py for QLoRA. Belongs in train extras.
+    "peft>=0.12",
 ]
 
 [project.scripts]

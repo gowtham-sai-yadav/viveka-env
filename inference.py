@@ -243,6 +243,7 @@ class FrozenQwenPolicy(Policy):
             loop_warning=md.get("loop_warning"),
             state_diff=md.get("state_diff"),
             recent_actions_lines=md.get("recent_actions"),
+            safety_concerns=md.get("safety_concerns"),
         )
 
     def __call__(self, observation: VivekaObservation) -> VivekaAction:
@@ -364,6 +365,7 @@ class GPT4oMiniPolicy(Policy):
             loop_warning=md.get("loop_warning"),
             state_diff=md.get("state_diff"),
             recent_actions_lines=md.get("recent_actions"),
+            safety_concerns=md.get("safety_concerns"),
         )
 
     def __call__(self, observation: VivekaObservation) -> VivekaAction:
@@ -421,6 +423,112 @@ class GPT4oMiniPolicy(Policy):
             return VivekaAction.model_validate(data)
         except ValidationError as e:
             return _abstain(f"gpt4o: schema invalid ({str(e)[:80]})")
+
+
+# ─── ANGLE 4 — Anthropic Claude ───────────────────────────────────────────
+
+
+class AnthropicClaudePolicy(Policy):
+    """Mirror of GPT4oMiniPolicy using Anthropic's API. Same prompt shape via
+    viveka.prompts. Cost-capped, circuit-broken, JSON-validating."""
+
+    name = "claude"
+
+    # Approx 2026 pricing per 1M tokens. Override via env if Anthropic changes rates.
+    # (input, output) USD per token.
+    _PRICING: dict[str, tuple[float, float]] = {
+        "claude-opus-4-7":          (15.0 / 1_000_000, 75.0 / 1_000_000),
+        "claude-sonnet-4-6":         (3.0 / 1_000_000, 15.0 / 1_000_000),
+        "claude-haiku-4-5-20251001": (0.80 / 1_000_000, 4.0 / 1_000_000),
+    }
+
+    def __init__(self, cost_cap_usd: float = 2.0, model: str = "claude-sonnet-4-6") -> None:
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise RuntimeError("ANTHROPIC_API_KEY is not set; cannot use AnthropicClaudePolicy.")
+        from anthropic import Anthropic  # lazy
+
+        self._client = Anthropic()
+        self._cost_cap = cost_cap_usd
+        self._cost = 0.0
+        self._model_id = model
+        self.name = model.replace("/", "_")
+        in_rate, out_rate = self._PRICING.get(model, (3.0 / 1_000_000, 15.0 / 1_000_000))
+        self._in_rate = in_rate
+        self._out_rate = out_rate
+        self._consecutive_errors = 0
+        self._max_consecutive_errors = 3
+
+    def _user_prompt(self, obs: VivekaObservation) -> str:
+        md = obs.metadata or {}
+        return _shared_build_user_prompt(
+            user_message=obs.user_message,
+            user_language=obs.user_language,
+            step=obs.step,
+            available_services=list(obs.available_services),
+            last_action_result=obs.last_action_result,
+            user_response=obs.user_response,
+            pending_confirmations_count=len(obs.pending_confirmations),
+            visible_state=obs.visible_state,
+            recent_actions_str=getattr(self, "_recent_actions_str", ""),
+            goal_entities=md.get("goal_entities"),
+            last_reasoning=md.get("last_reasoning"),
+            loop_warning=md.get("loop_warning"),
+            state_diff=md.get("state_diff"),
+            recent_actions_lines=md.get("recent_actions"),
+            safety_concerns=md.get("safety_concerns"),
+        )
+
+    def __call__(self, observation: VivekaObservation) -> VivekaAction:
+        if self._cost >= self._cost_cap:
+            return _abstain(f"claude: cost cap ${self._cost_cap} hit")
+        if self._consecutive_errors >= self._max_consecutive_errors:
+            return VivekaAction(
+                action_type="respond_to_user",
+                params={"text": f"[circuit-breaker] {self._consecutive_errors} consecutive API errors; aborting."},
+                confidence=0.5,
+                reasoning="API repeatedly failing; ending episode early.",
+            )
+
+        # Anthropic API: system is a separate top-level field, messages is user/assistant turns.
+        for attempt in range(4):
+            try:
+                resp = self._client.messages.create(
+                    model=self._model_id,
+                    system=_GPT_SYSTEM,  # same shared SYSTEM_PROMPT used by Qwen/GPT
+                    messages=[{"role": "user", "content": self._user_prompt(observation)}],
+                    max_tokens=400,
+                    temperature=0.0,
+                )
+                self._consecutive_errors = 0
+                break
+            except Exception as e:  # noqa: BLE001
+                msg = str(e).lower()
+                if "rate" in msg or "429" in msg or "timeout" in msg or "overloaded" in msg:
+                    time.sleep(2**attempt)
+                    continue
+                self._consecutive_errors += 1
+                return _abstain(f"claude: api error {str(e)[:120]}")
+        else:
+            self._consecutive_errors += 1
+            return _abstain("claude: rate-limit retries exhausted")
+
+        u = getattr(resp, "usage", None)
+        if u is not None:
+            self._cost += getattr(u, "input_tokens", 0) * self._in_rate
+            self._cost += getattr(u, "output_tokens", 0) * self._out_rate
+
+        # Anthropic response: resp.content is a list of content blocks; first text block has the body.
+        content_blocks = getattr(resp, "content", []) or []
+        text = ""
+        for block in content_blocks:
+            if getattr(block, "type", None) == "text":
+                text = getattr(block, "text", "") or ""
+                break
+        data = _extract_first_json(text) or {}
+        try:
+            return VivekaAction.model_validate(data)
+        except ValidationError as e:
+            return _abstain(f"claude: schema invalid ({str(e)[:80]})")
 
 
 # ─── episode runner ───────────────────────────────────────────────────────
@@ -853,16 +961,19 @@ def _build_policy(
         )
     if name == "gpt4o":
         return GPT4oMiniPolicy(cost_cap_usd=cost_cap, model=model or "gpt-4o-mini")
+    if name == "claude":
+        return AnthropicClaudePolicy(cost_cap_usd=cost_cap, model=model or "claude-sonnet-4-6")
     raise ValueError(f"unknown policy: {name}")
 
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--policy", choices=["random", "qwen", "gpt4o", "all"], default="random")
+    p.add_argument("--policy", choices=["random", "qwen", "gpt4o", "claude", "all"], default="random")
     p.add_argument("--model", default=None,
                    help="Model id. For --policy=qwen: HuggingFace id (e.g. Qwen/Qwen2.5-1.5B-Instruct) "
                         "or path to a LoRA adapter dir (auto-detects base from adapter_config.json). "
-                        "For --policy=gpt4o: OpenAI model id (default: gpt-4o-mini).")
+                        "For --policy=gpt4o: OpenAI model id (default: gpt-4o-mini). "
+                        "For --policy=claude: Anthropic model id (default: claude-sonnet-4-6).")
     p.add_argument("--adapter", default=None,
                    help="Optional LoRA adapter dir applied on top of --model (qwen policy only). "
                         "Use this if --model is the base HF id and you want to layer a trained adapter.")
@@ -882,7 +993,7 @@ def main() -> None:
 
     tier_mix = [int(x) for x in args.tier_mix.split(",") if x.strip()]
     pairs = _enumerate_scenarios(tier_mix, args.max_scenarios, per_tier=args.per_tier)
-    policies = ["random", "qwen", "gpt4o"] if args.policy == "all" else [args.policy]
+    policies = ["random", "qwen", "gpt4o", "claude"] if args.policy == "all" else [args.policy]
     out_path = Path(args.output_json)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 

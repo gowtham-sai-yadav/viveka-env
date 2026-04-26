@@ -105,6 +105,7 @@ def build_user_prompt(
     loop_warning: str | None = None,
     state_diff: dict[str, Any] | None = None,
     recent_actions_lines: list[str] | None = None,
+    safety_concerns: list[str] | None = None,
 ) -> str:
     """Standard user-turn template. Used by FrozenQwenPolicy, GPT4oMiniPolicy,
     AND build_dataset in train.py — same shape everywhere so the trained
@@ -169,6 +170,16 @@ def build_user_prompt(
     elif recent_actions_str and recent_actions_str.strip():
         parts.append("")
         parts.append(recent_actions_str.strip())
+
+    # ── SAFETY_CONCERNS (production-grade warnings from platform layer) ───
+    # These are deterministic checks against visible state + pending confirms,
+    # mirroring what a real DigiLocker / IRCTC / UPI integration would flag.
+    # Omitted entirely when no rule triggers.
+    if safety_concerns:
+        parts.append("")
+        parts.append("## SAFETY_CONCERNS")
+        for concern in safety_concerns:
+            parts.append(f"  ⚠ {concern}")
 
     # ── CURRENT_TURN (last result, user reply, pending) ───────────────────
     last = last_action_result or {}
