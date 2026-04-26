@@ -121,11 +121,22 @@ The capacity ladder is reproducible from twelve committed eval logs (3 architect
 
 ---
 
+## What else lives in the repo (not used by the trained-eval run, but real)
+
+The three trained LoRAs in this submission were trained at commit `bda8ce4`. After that cutoff Debashis landed four engineering layers that are exercised by the live HF Space and form the post-eval continuation trail:
+
+- **Long-horizon memory orchestration** (`viveka/server/long_horizon_memory.py`) — rolling action log, loop detection, reasoning-echo guard so the agent doesn't drift into repeating itself across the 30-step episode budget.
+- **DPI safety-signal layer** (`viveka/server/instruction_following.py`, `inference.AnthropicClaudePolicy`) — surfaces platform-specific warnings (UPI fraud-watchlist hit, DigiLocker non-trusted audience, IRCTC chart-prepared lockout) into the system prompt so the policy gets a structured signal before it acts.
+- **Instruction-following spec + reward stabilization** (`viveka/server/reward_stabilization.py`) — variance-reduction layer for noisy reward components, with the action-ordering constraints encoded so the agent learns "diff before patch, confirm before execute, respond before terminate."
+- **Frontier-model client** (`inference.AnthropicClaudePolicy`, `inference.GPT5Policy`) — what produced the Claude / GPT baselines you saw above.
+
+These didn't power the trained-Qwen / Llama-1B / Llama-3B numbers in the leaderboard — those are honest fixed-config eval results from before this engineering landed. They power the live demo and are the natural extension of where Viveka goes next.
+
 ## Honest cuts
 
 - **English + Hinglish only.** Native-script Tamil, Kannada, Bengali didn't make MVP.
 - **Teacher-rollout gap.** Training reward (Qwen Δ +0.960) measures intermediate-action quality with a scripted teacher closing the trajectory; sealed eval (Δ +0.020) makes the model terminate itself. Both real. Both measure different things. Curriculum that anneals teacher-help to zero is the obvious fix; we didn't have runtime.
-- **Mocked, not live.** NPCI / IRCTC / DigiLocker sandboxes aren't open. We modelled their conventions from public docs.
+- **Mocked, not live, but provenance-anchored.** NPCI / IRCTC / DigiLocker sandboxes aren't open. We modelled their conventions from public docs and regulator publications. `docs/scenario_provenance.md` is the audit trail: 50 of 69 scenarios (**72.5%**) anchor to real distributions (RBI fraud stats FY24-25, IRCTC tatkal rules, UIDAI auth volumes, DigiLocker AA / consent specs); 19 (27.5%) are deliberate adversarial edge cases probing beyond observed distributions. Zero row-level PII; all identifiers SHA-256-derived synthetic values that match real format patterns.
 
 ---
 
@@ -135,7 +146,12 @@ The capacity ladder is reproducible from twelve committed eval logs (3 architect
 
 A proper scoring rule on confidence makes the calibration claim mathematically un-game-able. A reversibility registry as single source of truth keeps the reward honest. T4 hard gates catch the unsafe policies most benchmarks ship without noticing.
 
-**Repo:** [github.com/gowtham-sai-yadav/viveka-env](https://github.com/gowtham-sai-yadav/viveka-env)
+**Try it / read the rest:**
+- 🪔 **Live demo (HF Space):** [huggingface.co/spaces/gowtham-sai-yadav/viveka-env](https://huggingface.co/spaces/gowtham-sai-yadav/viveka-env)
+- 🎥 **Demo video:** [youtube.com/@debashis_maharana4105](https://www.youtube.com/@debashis_maharana4105)
+- 📓 **Training notebooks (one per architecture):** [Qwen-1.5B](https://www.kaggle.com/code/gowthamsaiyadav/viveka-grpo-qwen2-5) · [Llama-1B](https://www.kaggle.com/code/ddevmhrn/viveka-llama3-2-1b) · [Llama-3B](https://www.kaggle.com/code/harsh3446/viveka-llama-3b)
+- 📦 **Source repo:** [github.com/gowtham-sai-yadav/viveka-env](https://github.com/gowtham-sai-yadav/viveka-env)
+
 **Team Diff Maker** — Debashis Maharana and Gowtham Sai Yadav. Meta PyTorch OpenEnv Hackathon Grand Finale, Bangalore, 26 April 2026.
 
 ---

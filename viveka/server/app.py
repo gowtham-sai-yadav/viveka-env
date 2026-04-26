@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 import gradio as gr
-from fastapi.responses import RedirectResponse
 from openenv.core.env_server.http_server import create_app
 
 from viveka.models import VivekaAction, VivekaObservation
@@ -20,17 +19,6 @@ app = create_app(
     observation_cls=VivekaObservation,
     env_name="viveka_env",
 )
-
-
-@app.get("/", include_in_schema=False)
-async def root_redirect() -> RedirectResponse:
-    """Send HF Space root visitors to the Viveka Gradio demo at /ui.
-
-    Without this, the HF Space iframe loads `/` which OpenEnv leaves
-    undefined, and judges see a blank page even though both the OpenEnv
-    web UI (/web) and our custom Gradio demo (/ui) are running.
-    """
-    return RedirectResponse(url="/ui", status_code=307)
 
 
 @app.get("/health")
@@ -79,7 +67,10 @@ async def run_grader(body: dict[str, Any]) -> dict[str, Any]:
 
 
 gradio_app = create_gradio_app()
-app = gr.mount_gradio_app(app, gradio_app, path="/ui")
+# Mount at root: HF Space iframe loads `/`, so Gradio must answer there directly.
+# OpenEnv's REST routes (/health, /tasks, /grader, /docs, /reset, /step, etc.)
+# are registered with explicit decorators above and match before Gradio's catch-all.
+app = gr.mount_gradio_app(app, gradio_app, path="/")
 
 
 def main() -> None:
