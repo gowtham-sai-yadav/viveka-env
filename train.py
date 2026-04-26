@@ -528,6 +528,49 @@ def main() -> None:
         random_state=args.seed,
     )
 
+    # Force chat-end token as EOS so model.generate() actually stops on assistant
+    # turn end. Unsloth rewrites pad/bos/eos when registering its <|PAD_TOKEN|>,
+    # which on Qwen2.5 leaves model.config.eos_token_id pointing at something
+    # the model never emits at end-of-turn → generation runs to max_tokens.
+    # Symptom in v4: completions/clipped_ratio=1.0, mean_terminated_length=0,
+    # reward floor at -0.97. Llama-3.2 dodged this because its <|eot_id|> stayed
+    # consistent through the legacy-tokenizer path.
+    _chat_eos: int | None = None
+    for _tok_str in ("<|im_end|>", "<|eot_id|>"):
+        _tid = tokenizer.convert_tokens_to_ids(_tok_str)
+        if isinstance(_tid, int) and _tid > 0 and _tid != getattr(tokenizer, "unk_token_id", -1):
+            _chat_eos = _tid
+            tokenizer.eos_token_id = _tid
+            tokenizer.eos_token = _tok_str
+            break
+
+    if _chat_eos is not None:
+        _eos_seen: set[int] = set()
+        def _pin_eos(m: Any) -> None:
+            if id(m) in _eos_seen:
+                return
+            _eos_seen.add(id(m))
+            cfg = getattr(m, "config", None)
+            if cfg is not None:
+                try:
+                    cfg.eos_token_id = _chat_eos
+                except (AttributeError, RuntimeError):
+                    pass
+            gcfg = getattr(m, "generation_config", None)
+            if gcfg is not None:
+                try:
+                    gcfg.eos_token_id = _chat_eos
+                except (AttributeError, RuntimeError):
+                    pass
+            for attr in ("base_model", "model"):
+                sub = getattr(m, attr, None)
+                if sub is not None and sub is not m:
+                    _pin_eos(sub)
+        _pin_eos(model)
+        print(f"[fix] pinned chat-end EOS to id={_chat_eos} ({tokenizer.eos_token!r})")
+    else:
+        print(f"[warn] no <|im_end|> or <|eot_id|> in vocab; leaving eos_token_id={tokenizer.eos_token_id}")
+
     # transformers 5.x removed PreTrainedModel.warnings_issued, but TRL 0.24's
     # GRPOTrainer.__init__ still does `model.warnings_issued["estimate_tokens"] = True`.
     # Walk the wrapper chain (PeftModel -> LoraModel -> Qwen2ForCausalLM) and
