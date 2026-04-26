@@ -564,7 +564,7 @@ def main() -> None:
         num_generations=4,                 # T4-feasible; G=16 was 30hr ETA
         temperature=1.0,                   # Sullivan 2025: forces sample divergence
         max_prompt_length=512,
-        max_completion_length=768,
+        max_completion_length=320,
         learning_rate=5e-6,
         warmup_ratio=0.1,
         lr_scheduler_type="cosine",
