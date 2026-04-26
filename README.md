@@ -7,7 +7,7 @@ sdk: docker
 app_port: 8000
 pinned: true
 license: apache-2.0
-short_description: RL env that teaches LLMs to predict reversibility and emit calibrated confidence on UPI, DigiLocker, IRCTC.
+short_description: Reversibility + calibrated confidence on Indian DPI
 tags:
   - openenv
   - reinforcement-learning
@@ -36,11 +36,11 @@ models:
 
 | Resource | URL |
 |---|---|
-| 🪔 **HF Space (env, runnable)** | <!-- NEEDS_USER: replace with public HF Space URL --> `https://huggingface.co/spaces/<TBD>` |
+| 🪔 **HF Space (env, runnable)** | [huggingface.co/spaces/gowtham-sai-yadav/viveka-env](https://huggingface.co/spaces/gowtham-sai-yadav/viveka-env) |
 | 📓 **Training notebook — Qwen 2.5 1.5B** | [kaggle.com/code/gowthamsaiyadav/viveka-grpo-qwen2-5](https://www.kaggle.com/code/gowthamsaiyadav/viveka-grpo-qwen2-5) |
 | 📓 **Training notebook — Llama 3.2 1B** | [kaggle.com/code/ddevmhrn/viveka-llama3-2-1b](https://www.kaggle.com/code/ddevmhrn/viveka-llama3-2-1b) |
 | 📓 **Training notebook — Llama 3.2 3B** | [kaggle.com/code/harsh3446/viveka-llama-3b](https://www.kaggle.com/code/harsh3446/viveka-llama-3b) |
-| 🎥 **Demo video / blog post** | <!-- NEEDS_USER: replace with public YouTube or blog URL --> `https://youtu.be/<TBD>` |
+| 📝 **Blog post** | [Blog.md](https://huggingface.co/spaces/gowtham-sai-yadav/viveka-env/blob/main/Blog.md) |
 | 📦 **Source repo** | [github.com/gowtham-sai-yadav/viveka-env](https://github.com/gowtham-sai-yadav/viveka-env) |
 
 **Viveka** is an [OpenEnv](https://github.com/meta-pytorch/OpenEnv) reinforcement-learning environment that trains LLM agents on India's Digital Public Infrastructure (UPI · DigiLocker · IRCTC · banking · telecom) to do three things every production agent gets wrong today:
