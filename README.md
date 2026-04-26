@@ -41,6 +41,7 @@ models:
 | 📓 **Training notebook — Llama 3.2 1B** | [kaggle.com/code/ddevmhrn/viveka-llama3-2-1b](https://www.kaggle.com/code/ddevmhrn/viveka-llama3-2-1b) |
 | 📓 **Training notebook — Llama 3.2 3B** | [kaggle.com/code/harsh3446/viveka-llama-3b](https://www.kaggle.com/code/harsh3446/viveka-llama-3b) |
 | 📝 **Blog post** | [Blog.md](https://huggingface.co/spaces/gowtham-sai-yadav/viveka-env/blob/main/Blog.md) |
+| 🎥 **Demo video** | [youtube.com/@debashis_maharana4105](https://www.youtube.com/@debashis_maharana4105) |
 | 📦 **Source repo** | [github.com/gowtham-sai-yadav/viveka-env](https://github.com/gowtham-sai-yadav/viveka-env) |
 
 **Viveka** is an [OpenEnv](https://github.com/meta-pytorch/OpenEnv) reinforcement-learning environment that trains LLM agents on India's Digital Public Infrastructure (UPI · DigiLocker · IRCTC · banking · telecom) to do three things every production agent gets wrong today:
