@@ -37,7 +37,9 @@ models:
 | Resource | URL |
 |---|---|
 | 🪔 **HF Space (env, runnable)** | <!-- NEEDS_USER: replace with public HF Space URL --> `https://huggingface.co/spaces/<TBD>` |
-| 📓 **Training notebook (Kaggle)** | <!-- NEEDS_USER: replace with public Kaggle notebook URL --> `https://www.kaggle.com/code/<TBD>` |
+| 📓 **Training notebook — Qwen 2.5 1.5B** | [kaggle.com/code/gowthamsaiyadav/viveka-grpo-qwen2-5](https://www.kaggle.com/code/gowthamsaiyadav/viveka-grpo-qwen2-5) |
+| 📓 **Training notebook — Llama 3.2 1B** | [kaggle.com/code/ddevmhrn/viveka-llama3-2-1b](https://www.kaggle.com/code/ddevmhrn/viveka-llama3-2-1b) |
+| 📓 **Training notebook — Llama 3.2 3B** | [kaggle.com/code/harsh3446/viveka-llama-3b](https://www.kaggle.com/code/harsh3446/viveka-llama-3b) |
 | 🎥 **Demo video / blog post** | <!-- NEEDS_USER: replace with public YouTube or blog URL --> `https://youtu.be/<TBD>` |
 | 📦 **Source repo** | [github.com/gowtham-sai-yadav/viveka-env](https://github.com/gowtham-sai-yadav/viveka-env) |
 
@@ -56,10 +58,11 @@ Most RL benchmarks only ask: did the agent succeed? Viveka also asks: should the
 | Training reward (start → final, 100 GRPO steps) | −0.797 → **+0.163** | −0.878 → −0.723 | −0.463 → **+0.173** |
 | Training reward Δ (final − start) | **+0.960** | +0.155 | **+0.636** |
 | Peak training reward | +0.163 | −0.514 | **+0.391** |
-| Sealed eval mean — baseline → trained (n=20) | 0.211 → **0.231** (**+0.021**) | 0.289 → 0.131 (**−0.158** capacity-tax‡) | training-curve evidence only† |
+| Sealed eval — baseline mean (n=20) | **0.211** | **0.289** | **0.145** |
+| Sealed eval — trained mean (n=20) | **0.231 (+0.021)** | 0.131 (**−0.158** capacity-tax‡) | trained eval queued† |
 | Per-tier eval lift, trained − baseline | **T1 +0.107**, T2 +0.027, T3 +0.039, T4 −0.091 | T1 −0.118, T2 −0.069, T3 −0.135, **T4 −0.310** (5/5 traps fired) | — |
 
-<sub>†Llama 3B sealed-eval pass with the new weighted-average grader is running on Kaggle — numbers fold in when complete. ‡**This is the env's exceptional finding.** At 1B parameters Llama learned aggression without safety — trained policy executes **121× across T1–T4** (vs baseline 55×, a 2.2× jump), which fires **all 5 of T4's `must_not_execute` planted traps** for a clean 0.000 T4 mean. Most RL benchmarks cannot detect when RL produces an aggressive-but-unsafe policy. **Viveka can.** Qwen-1.5B at higher capacity carved a cautious-and-decisive policy (only 9× executes on T3+T4, 1/5 trap fired). The env stratifies model capacity correctly. See [the full Llama-1B table below](#sealed-eval-set--llama-32-1b-the-envs-adversarial-design-caught-on-camera).</sub>
+<sub>†Llama 3B trained sealed-eval is queued on Kaggle (pinned at training commit `bda8ce4`) and will land at `eval/results/llama3b_train_*.log` when complete. The training-curve evidence (Δ +0.636, peak +0.391) is the strongest of the three architectures, and the baseline is now in the table. ‡**This is the env's exceptional finding.** At 1B parameters Llama learned aggression without safety — trained policy executes **121× across T1–T4** (vs baseline 55×, a 2.2× jump), which fires **all 5 of T4's `must_not_execute` planted traps** for a clean 0.000 T4 mean. Most RL benchmarks cannot detect when RL produces an aggressive-but-unsafe policy. **Viveka can.** Qwen-1.5B at higher capacity carved a cautious-and-decisive policy (only 9× executes on T3+T4, 1/5 trap fired). The env stratifies model capacity correctly. See [the full Llama-1B table below](#sealed-eval-set--llama-32-1b-the-envs-adversarial-design-caught-on-camera).</sub>
 
 ![Reward curves: Qwen-1.5B vs Llama-1B vs Llama-3B trained on identical GRPO config](eval/plots/reward_curves_xkcd.png)
 
@@ -171,7 +174,16 @@ This is the env *working*: the trained model engaged, recognised the trap, and r
 
 > **For judges:** the four raw eval logs (`eval/results/llama1b_{base,train}_{t12,t34}.log`) are committed to this repo as the audit trail. Per-scenario rewards, action sequences, error codes — all reproducible from `runs/llama_v3/lora` against the sealed scenario set.
 
-### Llama-3.2-3B — training-curve evidence (sealed eval pending)
+### Sealed eval set — Llama-3.2-3B (baseline complete; trained queued)
+
+| Policy | Mean reward | T1 | T2 | T3 | T4 | Action types |
+|---|---|---|---|---|---|---|
+| `frozen-llama-3b` (baseline) | **0.145** | 0.228 | 0.085 | 0.141 | 0.126 (5/5 STEP_LIMIT_HIT) | 319× ask, 246× abstain, 35× execute, 0× respond |
+| **`viveka-llama-3b`** (trained) | _pending Kaggle pass_ | — | — | — | — | — |
+
+**What the baseline shows (and why this matters for the trained delta).** Llama-3B at 3B parameters baseline already engages — 35 executes across T1–T4, 0 `respond_to_user` calls — and its reward (0.145) sits *below* both Qwen-1.5B baseline (0.211) and Llama-1B baseline (0.289). Higher capacity → more decisive engagement → more wrong actions get penalised in the sealed eval (vs Qwen-1.5B's "loop-and-ask" baseline that loses fewer points by never engaging). This is exactly the "decisiveness floor" the env was designed to expose.
+
+**Training-curve evidence already in the bag** (`runs/llama3b_v1/training_log.jsonl`):
 
 | Source | Value |
 |---|---|
@@ -181,7 +193,13 @@ This is the env *working*: the trained model engaged, recognised the trap, and r
 | Training Δ (final − start) | **+0.636** |
 | EOS-list fix needed? | No (single `<|eot_id|>` token = id 128009) |
 
-Llama-3B's clean climb on the same training pipeline (no EOS fix) confirms Qwen's gap to Llama-1B was **the TRL EOS bug, not the model family**. Sealed-eval results land here when the Kaggle pass completes.
+Llama-3B's clean training climb on the same pipeline (no EOS fix) confirms Qwen's gap to Llama-1B was **the TRL EOS bug, not the model family**. Sealed-eval numbers for the trained checkpoint land at `eval/results/llama3b_train_*.log` and update this table when the Kaggle pass completes.
+
+### Loss curves — three architectures
+
+![Loss curves: Qwen-1.5B vs Llama-1B vs Llama-3B (GRPO surrogate loss)](eval/plots/loss_curves_xkcd.png)
+
+GRPO surrogate loss per logging step, mean across G=4 rollouts. Negative values are normal (signed advantage-weighted policy ratio); near-zero = stable. All three runs stayed in the stable band — no divergence, no NaN, no gradient blow-up. Raw values: Qwen 1.5B `0.108 → 0.042`, Llama 1B `−0.002 → −0.091`, Llama 3B `0.096 → 0.072`.
 
 ---
 
