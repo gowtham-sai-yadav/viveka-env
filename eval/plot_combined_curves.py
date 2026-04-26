@@ -64,6 +64,7 @@ def plot_combined(
     llama_log: Path,
     output_png: Path,
     smooth_window: int = 3,
+    xkcd: bool = False,
 ) -> None:
     qwen_rows = _read_jsonl(qwen_log)
     llama_rows = _read_jsonl(llama_log)
@@ -76,6 +77,8 @@ def plot_combined(
 
     output_png.parent.mkdir(parents=True, exist_ok=True)
 
+    if xkcd:
+        plt.xkcd(scale=1.0, length=100, randomness=2)
     fig, (ax_main, ax_clip) = plt.subplots(
         2, 1, figsize=(11, 8), dpi=200, gridspec_kw={"height_ratios": [3, 1.2]}, sharex=True
     )
@@ -92,7 +95,8 @@ def plot_combined(
                  label=f"Llama-3.2-1B-Instruct (final={ly[-1]:+.3f}, peak={ly.max():+.3f})")
 
     ax_main.axhline(0.0, color="#000000", linestyle="-", linewidth=0.8, alpha=0.5)
-    ax_main.axhline(-1.0, color="#d62728", linestyle=":", linewidth=1.0, alpha=0.6,
+    floor_style = "-" if xkcd else ":"
+    ax_main.axhline(-1.0, color="#d62728", linestyle=floor_style, linewidth=1.0, alpha=0.6,
                     label="reward floor (parser fails)")
 
     ax_main.set_ylabel("Reward (per-step mean across G=4 rollouts)", fontsize=11)
@@ -101,7 +105,7 @@ def plot_combined(
         "Qwen climbed past zero after EOS-list fix; Llama plateaued (no fix needed but lower ceiling)",
         fontsize=12,
     )
-    ax_main.grid(True, alpha=0.3, linestyle=":")
+    ax_main.grid(True, alpha=0.3, linestyle="-" if xkcd else ":")
     ax_main.legend(loc="lower right", frameon=True, fontsize=10)
 
     y_min = min(-1.0, qy.min(), ly.min()) - 0.05
@@ -116,10 +120,10 @@ def plot_combined(
     if len(ly_clip) > 0:
         ax_clip.plot(lx_clip, ly_clip, color=LLAMA_COLOR, linewidth=2.0, marker="s", markersize=4,
                      label=f"Llama (final clipped={ly_clip[-1]:.3f})")
-    ax_clip.set_ylabel("Clipped ratio\n(↓ = healthier)", fontsize=10)
+    ax_clip.set_ylabel("Clipped ratio\n(lower = healthier)", fontsize=10)
     ax_clip.set_xlabel("Training step", fontsize=11)
     ax_clip.set_ylim(0.0, 1.05)
-    ax_clip.grid(True, alpha=0.3, linestyle=":")
+    ax_clip.grid(True, alpha=0.3, linestyle="-" if xkcd else ":")
     ax_clip.legend(loc="upper right", frameon=True, fontsize=9)
 
     qy_final = float(qy[-1])
@@ -153,8 +157,10 @@ def main() -> None:
     p.add_argument("--llama-log", type=Path, default=Path("runs/llama_v3/training_log.jsonl"))
     p.add_argument("--output-png", type=Path, default=Path("eval/plots/reward_curves_combined.png"))
     p.add_argument("--smooth-window", type=int, default=3)
+    p.add_argument("--xkcd", action="store_true",
+                   help="Render in xkcd / hand-drawn style for the README hero image")
     args = p.parse_args()
-    plot_combined(args.qwen_log, args.llama_log, args.output_png, args.smooth_window)
+    plot_combined(args.qwen_log, args.llama_log, args.output_png, args.smooth_window, args.xkcd)
 
 
 if __name__ == "__main__":
