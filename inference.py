@@ -222,9 +222,12 @@ class FrozenQwenPolicy(Policy):
 
     def _user_prompt(self, obs: VivekaObservation) -> str:
         # Use the SHARED user-prompt builder so training and inference see
-        # identical prompt shape. Includes recent_actions_str (set by run_episode
-        # via setattr) so the trained model can detect its own loops.
+        # identical prompt shape. Memory-orchestration fields come from
+        # obs.metadata (env-side, populated 2026-04-26). The legacy
+        # `recent_actions_str` setattr channel is kept as a fallback for
+        # callers that haven't migrated.
         from viveka.prompts import build_user_prompt as _shared_build_user_prompt
+        md = obs.metadata or {}
         return _shared_build_user_prompt(
             user_message=obs.user_message,
             user_language=obs.user_language,
@@ -235,6 +238,11 @@ class FrozenQwenPolicy(Policy):
             pending_confirmations_count=len(obs.pending_confirmations),
             visible_state=obs.visible_state,
             recent_actions_str=getattr(self, "_recent_actions_str", ""),
+            goal_entities=md.get("goal_entities"),
+            last_reasoning=md.get("last_reasoning"),
+            loop_warning=md.get("loop_warning"),
+            state_diff=md.get("state_diff"),
+            recent_actions_lines=md.get("recent_actions"),
         )
 
     def __call__(self, observation: VivekaObservation) -> VivekaAction:
@@ -337,8 +345,10 @@ class GPT4oMiniPolicy(Policy):
     def _user_prompt(self, obs: VivekaObservation) -> str:
         # Use the SHARED user-prompt builder (viveka.prompts.build_user_prompt)
         # so training (build_dataset in train.py) and eval (this policy) emit
-        # identical prompt shapes. Recent-action history is injected by
-        # run_episode via the `_recent_actions_str` attribute.
+        # identical prompt shapes. Memory-orchestration fields come from
+        # obs.metadata (env-side, populated 2026-04-26). The legacy
+        # `_recent_actions_str` setattr channel is kept as a fallback.
+        md = obs.metadata or {}
         return _shared_build_user_prompt(
             user_message=obs.user_message,
             user_language=obs.user_language,
@@ -349,6 +359,11 @@ class GPT4oMiniPolicy(Policy):
             pending_confirmations_count=len(obs.pending_confirmations),
             visible_state=obs.visible_state,
             recent_actions_str=getattr(self, "_recent_actions_str", ""),
+            goal_entities=md.get("goal_entities"),
+            last_reasoning=md.get("last_reasoning"),
+            loop_warning=md.get("loop_warning"),
+            state_diff=md.get("state_diff"),
+            recent_actions_lines=md.get("recent_actions"),
         )
 
     def __call__(self, observation: VivekaObservation) -> VivekaAction:

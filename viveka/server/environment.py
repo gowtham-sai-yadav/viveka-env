@@ -15,7 +15,23 @@ from viveka.models import (
     VivekaState,
 )
 from viveka.server.graders import compute_step_reward_signals, grade_episode
+# ── Modular orchestration layers (refactored 2026-04-26) ────────────────────
+# Memory orchestration (Theme 2: Long-Horizon Planning + Instruction Following)
+# lives in long_horizon_memory.py. Reward boundary stabilization lives in
+# reward_stabilization.py. The env composes them; their internals are
+# auditable in isolation.
+from viveka.server.long_horizon_memory import (
+    LAST_REASONING_MAX,
+    LOOP_DETECT_K,
+    RECENT_ACTIONS_K,
+    compute_state_diff,
+    detect_loop,
+    extract_goal_entities,
+    extract_last_reasoning,
+    format_recent_actions_lines,
+)
 from viveka.server.reversibility_registry import lookup
+from viveka.server.reward_stabilization import logit_clip_reward
 from viveka.server.rubric import VivekaRubric
 from viveka.server.scenario_loader import load_scenario_by_tier
 from viveka.server.services._base import MockService, ServiceError
@@ -51,6 +67,11 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
         self._user_responses: list[dict[str, Any]] = []
         self._last_action_result: dict[str, Any] | None = None
         self._done_action_type: str | None = None
+        # Memory-orchestration state (populated in reset / consumed in
+        # _make_observation). _prev_visible_state=None is the sentinel for
+        # "first observation, no diff baseline yet".
+        self._prev_visible_state: dict[str, Any] | None = None
+        self._goal_entities: list[str] = []
 
     # ── reset ─────────────────────────────────────────────────────────────
 
@@ -79,6 +100,15 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
         self._user_responses = []
         self._last_action_result = None
         self._done_action_type = None
+        # Reset memory-orchestration state. Goal entities are computed once
+        # from initial_state — they're sticky across the whole episode.
+        self._prev_visible_state = None
+        try:
+            self._goal_entities = extract_goal_entities(
+                self._scenario.get("initial_state", {})
+            )
+        except Exception:
+            self._goal_entities = []
 
         eid = episode_id or str(uuid4())
         self._state = VivekaState(
@@ -322,7 +352,13 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
         return round(min(max(avg, 0.0), 1.0), 4)
 
     def _compute_final_reward(self) -> float:
-        return grade_episode(
+        # Raw grader output ∈ [0, 1]. We pass it through logit_clip_reward
+        # (viveka.server.reward_stabilization) to map the closed interval to
+        # the open (REWARD_OPEN_LO, REWARD_OPEN_HI) interval — required for
+        # proper-scoring-rule-driven GRPO training to avoid log(0) gradient
+        # explosion. The grader itself is unchanged; the wrapper is a thin
+        # post-hoc numerical-stability layer.
+        raw = grade_episode(
             scenario=self._scenario,
             actions_taken=self._actions_taken,
             services_state=self._snapshot_services(),
@@ -330,6 +366,7 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
             pending_confirmations=[pc.model_dump() for pc in self._pending_confirmations],
             done_action_type=self._done_action_type,
         )
+        return logit_clip_reward(raw)
 
     @staticmethod
     def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
@@ -446,7 +483,36 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
             services_state=self._snapshot_services(),
         )
         last_reply = self._user_responses[-1]["reply"] if self._user_responses else None
-        return VivekaObservation(
+
+        # ── Memory orchestration (added 2026-04-26) ────────────────────────
+        # Build the agent-visible memory channel from data the env already
+        # tracks: action history (within-episode self-improvement), prior
+        # reasoning (cognitive continuity), state diff (what just changed),
+        # and a sticky goal anchor (long-horizon goal preservation in a
+        # small context window). All fields land in `metadata` — never alter
+        # the scenario JSON, never invent new content via an external LLM.
+        visible_state = self._redacted_visible_state()
+        try:
+            recent_actions = format_recent_actions_lines(
+                self._actions_taken, k=RECENT_ACTIONS_K
+            )
+        except Exception:
+            recent_actions = []
+        try:
+            loop_detected, loop_warning = detect_loop(
+                self._actions_taken, k=LOOP_DETECT_K
+            )
+        except Exception:
+            loop_detected, loop_warning = False, None
+        last_reasoning = extract_last_reasoning(
+            self._actions_taken, max_len=LAST_REASONING_MAX
+        )
+        try:
+            state_diff = compute_state_diff(self._prev_visible_state, visible_state)
+        except Exception:
+            state_diff = {}
+
+        obs = VivekaObservation(
             episode_id=self._state.episode_id or "",
             step=self._state.step_count,
             user_message=self._state.user_message,
@@ -457,7 +523,7 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
             # The full snapshot (`_snapshot_services()`) is used only by the
             # grader for `task_completion` state-matching. This split is the
             # core of the τ-bench information-gating pattern.
-            visible_state=self._redacted_visible_state(),
+            visible_state=visible_state,
             pending_confirmations=list(self._pending_confirmations),
             user_response=last_reply,
             message=message,
@@ -467,8 +533,19 @@ class VivekaEnvironment(Environment[VivekaAction, VivekaObservation, VivekaState
                 "step_count": self._state.step_count,
                 "scenario_id": self._state.scenario_id,
                 "reward_signals": signals,
+                # Memory channel — consumed by prompts.build_user_prompt.
+                "goal_entities": list(self._goal_entities),
+                "recent_actions": recent_actions,
+                "loop_detected": loop_detected,
+                "loop_warning": loop_warning,
+                "last_reasoning": last_reasoning,
+                "state_diff": state_diff,
             },
         )
+        # Update diff baseline AFTER constructing the obs. The next call sees
+        # this state as "prev" and emits diff against it.
+        self._prev_visible_state = visible_state
+        return obs
 
 
 def _values_match(expected: Any, current: Any) -> bool:

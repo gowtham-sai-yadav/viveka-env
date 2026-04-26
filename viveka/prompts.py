@@ -6,6 +6,12 @@ files maintain independent prompt strings.
 
 If you change a prompt: change it HERE and re-run both training and eval.
 
+The canonical instruction-following spec (the multi-rule behavioural
+contract the agent must obey every turn) lives in
+`viveka.server.instruction_following`. The decision-time reminder rendered
+in the user prompt's NOW DECIDE section is imported from there to keep one
+source of truth.
+
 References:
 - τ-bench (Yao 2024): inputs reveal intent not IDs; agent must use API actions.
 - Sahoo 2025: minimal cheat-sheet hints — model must reason from semantics.
@@ -15,6 +21,8 @@ from __future__ import annotations
 
 import json
 from typing import Any
+
+from viveka.server.instruction_following import compact_decision_reminder
 
 # Hardcoded constant from environment.MAX_STEPS — kept here to avoid circular
 # imports during lazy training-time loading. If env raises this, update both.
@@ -91,28 +99,98 @@ def build_user_prompt(
     pending_confirmations_count: int,
     visible_state: dict[str, Any],
     recent_actions_str: str = "",
+    *,
+    goal_entities: list[str] | None = None,
+    last_reasoning: str | None = None,
+    loop_warning: str | None = None,
+    state_diff: dict[str, Any] | None = None,
+    recent_actions_lines: list[str] | None = None,
 ) -> str:
     """Standard user-turn template. Used by FrozenQwenPolicy, GPT4oMiniPolicy,
     AND build_dataset in train.py — same shape everywhere so the trained
     model isn't surprised by new fields at eval time.
+
+    Memory-orchestration kwargs (added 2026-04-26) are all optional with
+    safe-empty defaults. When the env populates them in observation.metadata
+    (the modern path), the prompt renders structured sections that give the
+    agent within-episode self-reflection (last_reasoning), loop detection
+    (loop_warning), goal salience (goal_entities), and state-change awareness
+    (state_diff). Legacy callers that pass only `recent_actions_str` (the
+    pre-2026-04-26 string-based channel) still work — the new sections just
+    stay omitted.
     """
+    parts: list[str] = []
+
+    # ── GOAL_ANCHOR (sticky every step — never lose the goal) ─────────────
+    parts.append("## GOAL_ANCHOR")
+    parts.append(f"User request: {user_message} (lang={user_language})")
+    if goal_entities:
+        for entity in goal_entities:
+            parts.append(f"  - {entity}")
+
+    # ── YOUR_LAST_REASONING (within-episode self-reflection) ──────────────
+    # Omitted on step 1 and when the agent's prior reasoning was empty —
+    # avoid teaching the model to consume empty echo blocks.
+    if last_reasoning:
+        parts.append("")
+        parts.append("## YOUR_LAST_REASONING")
+        parts.append(f'"{last_reasoning}"')
+
+    # ── STATE (current observation) ───────────────────────────────────────
+    parts.append("")
+    parts.append(
+        f"## STATE (step {step}/{_MAX_STEPS_HINT}, services: {available_services})"
+    )
+    state_str = json.dumps(visible_state, default=str)
+    if len(state_str) > 600:
+        state_str = state_str[:600] + "…"
+    parts.append(state_str)
+
+    # ── STATE_DIFF (omitted when nothing changed) ─────────────────────────
+    if state_diff:
+        parts.append("")
+        parts.append("## STATE_DIFF (since last step)")
+        for svc, changes in state_diff.items():
+            if not isinstance(changes, dict):
+                continue
+            for key, val in changes.items():
+                parts.append(f"  - {svc}.{key}: {val}")
+
+    # ── RECENT_ACTIONS (rolling memory + loop warning) ────────────────────
+    # Prefer the structured `recent_actions_lines` (new path from env
+    # metadata). Fall back to the legacy `recent_actions_str` for callers
+    # that haven't migrated. Omit entirely on step 1 (no history yet).
+    if recent_actions_lines:
+        parts.append("")
+        parts.append(f"## RECENT_ACTIONS (last {len(recent_actions_lines)})")
+        parts.extend(recent_actions_lines)
+        if loop_warning:
+            parts.append(f"  {loop_warning}")
+    elif recent_actions_str and recent_actions_str.strip():
+        parts.append("")
+        parts.append(recent_actions_str.strip())
+
+    # ── CURRENT_TURN (last result, user reply, pending) ───────────────────
     last = last_action_result or {}
     if last.get("error_code"):
-        last_str = f"ERROR {last['error_code']}: {last.get('error_message', '')[:200]}"
+        last_str = (
+            f"ERROR {last['error_code']}: {str(last.get('error_message', ''))[:200]}"
+        )
     elif last:
-        last_str = json.dumps(last)[:300]
+        last_str = json.dumps(last, default=str)[:300]
     else:
         last_str = "none (this is step 1)"
+    parts.append("")
+    parts.append("## CURRENT_TURN")
+    parts.append(f"Last action result: {last_str}")
+    parts.append(f"User reply: {user_response or 'none'}")
+    parts.append(f"Pending confirmations: {pending_confirmations_count}")
 
-    return (
-        f"User request: {user_message} (lang={user_language})\n"
-        f"Step {step}/{_MAX_STEPS_HINT}. Services available: {available_services}.\n"
-        f"Last action result: {last_str}\n"
-        f"User reply (if any): {user_response or 'none'}\n"
-        f"Pending confirmations: {pending_confirmations_count}\n"
-        f"{recent_actions_str}"
-        f"Visible state (first 600 chars): {json.dumps(visible_state)[:600]}\n"
-        f"\nEmit ONE JSON action. If your last 2 attempts had the same "
-        f"operation+error, change strategy "
-        f"(different params, ask_user for clarification, or respond_to_user with explanation)."
-    )
+    # ── NOW DECIDE (recency-favored: closest to model output) ─────────────
+    # Decision-time reminder is the canonical instruction-following module's
+    # one-line summary. Same text as before — sourced from the rules registry.
+    parts.append("")
+    parts.append("## NOW DECIDE")
+    parts.append(compact_decision_reminder())
+
+    return "\n".join(parts)

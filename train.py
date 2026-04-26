@@ -388,6 +388,11 @@ def build_dataset(tier_mix: dict[int, float], n: int, seed: int = 0):
         scenario_idx = rng.randrange(0, tier_counts.get(tier, 1))
         # Pull the real first-observation so the user prompt mirrors eval-time shape.
         obs = env.reset(tier_id=tier, scenario_idx=scenario_idx)
+        # Memory-orchestration metadata is populated by the env (2026-04-26).
+        # On step 1: recent_actions/last_reasoning/state_diff are empty; only
+        # goal_entities is meaningfully populated. Pass everything through so
+        # training rows match the eval-time prompt shape exactly.
+        md = obs.metadata or {}
         user_content = build_user_prompt(
             user_message=obs.user_message,
             user_language=obs.user_language,
@@ -397,7 +402,12 @@ def build_dataset(tier_mix: dict[int, float], n: int, seed: int = 0):
             user_response=obs.user_response,
             pending_confirmations_count=len(obs.pending_confirmations),
             visible_state=obs.visible_state,
-            recent_actions_str="",  # step 1 has no history
+            recent_actions_str="",  # step 1 has no history (legacy fallback)
+            goal_entities=md.get("goal_entities"),
+            last_reasoning=md.get("last_reasoning"),
+            loop_warning=md.get("loop_warning"),
+            state_diff=md.get("state_diff"),
+            recent_actions_lines=md.get("recent_actions"),
         )
         rows.append(
             {
