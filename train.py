@@ -231,20 +231,34 @@ def _heuristic_next_action(obs: Any) -> VivekaAction:
     last_result = getattr(obs, "last_action_result", None)
 
     # If user just said yes on a pending confirmation, execute that pending action.
+    # Look up the TRUE reversibility from the registry instead of hardcoding
+    # "irreversible" — read confirms (e.g., view_document) are reversible, and
+    # the previous hardcode was getting reversibility_correct wrong on those
+    # branches. Audit 2026-04-26.
     if pending and isinstance(user_reply, str) and user_reply.strip().lower() in {"yes", "y", "ok", "confirm"}:
         c = pending[0]
+        try:
+            from viveka.server.reversibility_registry import lookup as _rev_lookup
+            true_rev = _rev_lookup(c.target_service, c.operation)
+        except Exception:
+            true_rev = "irreversible"
         return VivekaAction(
             action_type="execute",
             target_service=c.target_service,
             operation=c.operation,
             params=dict(c.params or {}),
-            predicted_reversibility="irreversible",
+            predicted_reversibility=true_rev,
             confidence=0.85,
             reasoning="executing user-confirmed action",
         )
 
     # If the previous execute returned data, terminate with a response.
-    if last_result and not pending:
+    # Treat empty dict (falsy) as "no result yet" — only respond_to_user when
+    # last_result has actual content AND no error code.
+    has_real_result = bool(last_result) and not (
+        isinstance(last_result, dict) and last_result.get("error_code")
+    )
+    if has_real_result and not pending:
         return VivekaAction(
             action_type="respond_to_user",
             target_service=None,
